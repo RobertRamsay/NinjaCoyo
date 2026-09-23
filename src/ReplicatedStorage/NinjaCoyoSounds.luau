@@ -25,9 +25,16 @@ for name, info in pairs(Config.Sounds) do
 	templates[name] = template
 end
 
+local music = Instance.new("Sound")
+music.Name = "Music"
+music.SoundId = Config.Music.Id
+music.Volume = Config.Music.Volume
+music.Looped = false
+music.Parent = soundFolder
+
 -- Load every sound in the background so the first play isn't delayed
 task.spawn(function()
-	local list = {}
+	local list = { music }
 	for _, template in pairs(templates) do
 		if template.SoundId ~= "" then
 			table.insert(list, template)
@@ -52,6 +59,18 @@ function Sounds.Play(name, pitch, volumeScale)
 	sound.Parent = soundFolder
 	sound:Play()
 	Debris:AddItem(sound, 4)
+end
+
+-- Starts the music from the beginning, unless it is already playing (then it carries on)
+function Sounds.PlayMusicIfIdle()
+	if music.SoundId == "" then
+		return
+	end
+	if music.IsPlaying then
+		return
+	end
+	music.TimePosition = 0
+	music:Play()
 end
 
 return Sounds

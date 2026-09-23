@@ -116,6 +116,12 @@ Config.EnemyTypes = {
 -- These start on sounds built into Roblox so you hear something straight away.
 -- Upload the NinjaCoyo .ogg files (Creator Hub > Development Items > Audio),
 -- then replace each Id with "rbxassetid://" followed by the uploaded asset's number.
+-- Music: plays once each time a zone gate is opened, unless it is still playing
+Config.Music = {
+	Id = "rbxassetid://70968087799750",
+	Volume = 0.5,
+}
+
 Config.Sounds = {
 	CoinPickup = { Id = "rbxassetid://136880211129207", Volume = 0.35 },
 	CoinBurst = { Id = "rbxassetid://77465759271184", Volume = 0.4 },
