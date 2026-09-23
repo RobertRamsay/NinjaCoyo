@@ -9,6 +9,7 @@ local RunService = game:GetService("RunService")
 
 local Config = require(ReplicatedStorage:WaitForChild("NinjaCoyoConfig"))
 
+local Progression = require(script.Parent:WaitForChild("NinjaCoyoProgression"))
 local Enemies = {}
 
 local AI_STEP = 0.1
@@ -216,7 +217,7 @@ local function spawnEnemy(player)
 	if rootPart == nil or playerHumanoid == nil then
 		return
 	end
-	if playerHumanoid.Health <= 0 then
+	if playerHumanoid.Health <= 0 or Progression.IsSafe(rootPart.Position) then
 		return
 	end
 
@@ -229,7 +230,7 @@ local function spawnEnemy(player)
 		local candidate = rootPart.Position + Vector3.new(math.cos(angle) * distance, 0, math.sin(angle) * distance)
 		if getZoneAt(candidate) == playerZone then
 			local ground = findSpawnGround(candidate)
-			if ground ~= nil then
+			if ground ~= nil and not Progression.Reserved(ground, 3) then
 				spawnPosition = ground
 				break
 			end
@@ -294,6 +295,9 @@ local function spawnEnemy(player)
 
 	model:PivotTo(CFrame.new(spawnPosition + Vector3.new(0, 4 * enemyType.Scale, 0)))
 	model:SetAttribute("OwnerUserId", player.UserId)
+	for _, p in ipairs(model:GetDescendants()) do
+		if p:IsA("BasePart") then p.CollisionGroup = "NinjaCoyoEnemies" end
+	end
 	model.Parent = enemiesFolder
 	enemyRoot:SetNetworkOwner(nil)
 
@@ -356,7 +360,7 @@ local function updateEnemy(enemy, now)
 	if humanoid.Health <= 0 then
 		return
 	end
-	if enemy.Root.Position.Y < -60 then
+	if enemy.Root.Position.Y < -60 or Progression.IsSafe(enemy.Root.Position) then
 		despawnEnemy(enemy)
 		return
 	end
@@ -369,6 +373,11 @@ local function updateEnemy(enemy, now)
 		targetHumanoid = character:FindFirstChildOfClass("Humanoid")
 	end
 
+	if targetRoot and Progression.IsSafe(targetRoot.Position) then
+		-- Wait outside while the ninja rests; the doorway also blocks enemy physics.
+		humanoid:MoveTo(enemy.Root.Position)
+		return
+	end
 	local hasTarget = false
 	if targetRoot ~= nil and targetHumanoid ~= nil and targetHumanoid.Health > 0 then
 		local distance = (targetRoot.Position - enemy.Root.Position).Magnitude
@@ -413,6 +422,8 @@ end
 
 function Enemies.DamageEnemy(player, enemy, amount)
 	if player:GetAttribute("MenuProtected") == true then return end
+	local playerRoot = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+	if playerRoot and Progression.IsSafe(playerRoot.Position) then return end
 	if enemy.Dead == true then
 		return
 	end

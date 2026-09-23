@@ -9,6 +9,7 @@ local CollectionService = game:GetService("CollectionService")
 local Config = require(ReplicatedStorage:WaitForChild("NinjaCoyoConfig"))
 local Enemies = require(script.Parent:WaitForChild("NinjaCoyoEnemies"))
 local Wardrobe = require(script.Parent:WaitForChild("NinjaCoyoWardrobe"))
+local Progression = require(script.Parent:WaitForChild("NinjaCoyoProgression"))
 local Scenery = require(script.Parent:WaitForChild("NinjaCoyoScenery"))
 
 local dataStore = nil
@@ -329,14 +330,17 @@ local function getRandomGroundInZone(zone, terrace)
 		z = terrace.Center.Z + rng:NextNumber(-terrace.Radius * 0.5, terrace.Radius * 0.5)
 	end
 	local origin = Vector3.new(x, zone.Center.Y + Config.SpawnRayHeight, z)
-	local result = workspace:Raycast(origin, Vector3.new(0, -Config.SpawnRayHeight * 2, 0), rayParams)
+	local groundParams = RaycastParams.new()
+	groundParams.FilterType = Enum.RaycastFilterType.Include
+	groundParams.FilterDescendantsInstances = { workspace.Terrain, zonesFolder }
+	local result = workspace:Raycast(origin, Vector3.new(0, -Config.SpawnRayHeight * 2, 0), groundParams)
 	if result == nil then
 		return nil
 	end
 	if result.Material == Enum.Material.Water then
 		return nil
 	end
-	if result.Normal.Y < 0.85 or not Scenery.IsPickupClear(result.Position) then
+	if result.Normal.Y < 0.85 or not Scenery.IsPickupClear(result.Position) or Progression.Reserved(result.Position) then
 		return nil
 	end
 	for _, chest in ipairs(chestsFolder:GetChildren()) do
@@ -414,7 +418,7 @@ local function spawnChest(zoneId)
 	local terrace = nil
 	-- Fill each summit before ordinary chests so elevated treasure is always present.
 	for _, hill in ipairs(Config.TreasureTerraces) do
-		if hill.Zone == zoneId then
+		if hill.Zone == zoneId and not Progression.Reserved(hill.Center) then
 			local occupied = false
 			for _, chest in ipairs(chestsFolder:GetChildren()) do
 				local p = chest.PrimaryPart
@@ -426,7 +430,15 @@ local function spawnChest(zoneId)
 			if not occupied then terrace = hill; break end
 		end
 	end
-	local ground = getRandomGroundInZone(zone, terrace)
+	local sky = Progression.GetChestSlot(zoneId, chestsFolder)
+	if sky == nil then
+		local ordinary = 0
+		for _, chest in ipairs(chestsFolder:GetChildren()) do
+			if chest:GetAttribute("Zone") == zoneId and chest:GetAttribute("SkySlot") == nil then ordinary += 1 end
+		end
+		if ordinary >= zone.MaxChests - 2 then return false end
+	end
+	local ground = sky and sky.Position or getRandomGroundInZone(zone, terrace)
 	if ground == nil then
 		return false
 	end
@@ -435,7 +447,13 @@ local function spawnChest(zoneId)
 	chestModel.Name = "ScrollChest"
 
 	local baseCFrame = CFrame.new(ground + Vector3.new(0, 1, 0)) * CFrame.Angles(0, rng:NextNumber(0, math.pi * 2), 0)
-	local base = makeChestPart(chestModel, "Base", Vector3.new(3, 2, 2.2), CHEST_WOOD, Enum.Material.WoodPlanks, baseCFrame)
+	local chestColour = sky and (sky.Multiplier == 6 and Color3.fromRGB(135, 65, 200) or Color3.fromRGB(30, 160, 190)) or CHEST_WOOD
+	local base = makeChestPart(chestModel, "Base", Vector3.new(3, 2, 2.2), chestColour, sky and Enum.Material.Metal or Enum.Material.WoodPlanks, baseCFrame)
+	chestModel:SetAttribute("ChestColour", chestColour)
+	if sky then
+		chestModel:SetAttribute("SkySlot", sky.Id)
+		chestModel:SetAttribute("RequiredJumpLevel", sky.JumpLevel)
+	end
 	makeChestPart(chestModel, "Lid", Vector3.new(3.1, 0.7, 2.3), CHEST_LID, Enum.Material.WoodPlanks, baseCFrame * CFrame.new(0, 1.35, 0))
 	makeChestPart(chestModel, "Band", Vector3.new(0.5, 2.8, 2.35), GOLD, Enum.Material.SmoothPlastic, baseCFrame * CFrame.new(0, 0.35, 0))
 	makeChestPart(chestModel, "Lock", Vector3.new(0.6, 0.6, 0.2), GOLD, Enum.Material.SmoothPlastic, baseCFrame * CFrame.new(0, 0.9, -1.25))
@@ -452,8 +470,8 @@ local function spawnChest(zoneId)
 	valueLabel.Size = UDim2.new(1, 0, 0.55, 0)
 	valueLabel.BackgroundTransparency = 1
 	valueLabel.Font = Enum.Font.FredokaOne
-	local chestValue = rng:NextInteger(zone.ChestValueMin, zone.ChestValueMax)
-	valueLabel.Text = "📜 " .. Config.FormatNumber(chestValue)
+	local chestValue = rng:NextInteger(zone.ChestValueMin, zone.ChestValueMax) * (sky and sky.Multiplier or 1)
+	valueLabel.Text = (sky and sky.Name .. "\n" or "") .. "📜 " .. Config.FormatNumber(chestValue)
 	valueLabel.TextColor3 = GOLD
 	valueLabel.TextStrokeTransparency = 0.3
 	valueLabel.TextScaled = true
@@ -501,6 +519,12 @@ local function hitChest(chestModel, player)
 		return
 	end
 
+	if not playerHasZone(data, chestModel:GetAttribute("Zone")) then return end
+	if chestModel:GetAttribute("SkySlot") then
+		local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+		if not root or (root.Position - base.Position).Magnitude > Config.KatanaRange + 2
+			or data.Upgrades.NinjaJump < chestModel:GetAttribute("RequiredJumpLevel") then return end
+	end
 	local hits = chestModel:GetAttribute("Hits") - 1
 	local maxHits = chestModel:GetAttribute("MaxHits")
 	chestModel:SetAttribute("Hits", hits)
@@ -516,7 +540,7 @@ local function hitChest(chestModel, player)
 	base.Color = Color3.new(1, 1, 1)
 	task.delay(0.1, function()
 		if base.Parent ~= nil then
-			base.Color = CHEST_WOOD
+			base.Color = chestModel:GetAttribute("ChestColour") or CHEST_WOOD
 		end
 	end)
 
@@ -527,6 +551,7 @@ local function hitChest(chestModel, player)
 		local position = base.Position
 		local reward = computeReward(data, baseValue)
 		fxEvent:FireAllClients("ChestOpen", base.CFrame, player.UserId, reward)
+		Progression.ChestOpened(chestModel:GetAttribute("SkySlot"))
 		chestModel:Destroy()
 		zoneChestCount[zoneId] = zoneChestCount[zoneId] - 1
 		addCoins(player, reward, position)
@@ -562,7 +587,7 @@ local function findNearestChest(data, position, radius)
 	local nearestDistance = radius
 	for _, chestModel in ipairs(chestsFolder:GetChildren()) do
 		local base = chestModel.PrimaryPart
-		if base ~= nil and chestModel:GetAttribute("Opened") ~= true then
+		if base ~= nil and chestModel:GetAttribute("Opened") ~= true and chestModel:GetAttribute("SkySlot") == nil then
 			if playerHasZone(data, chestModel:GetAttribute("Zone")) then
 				local distance = (base.Position - position).Magnitude
 				if distance < nearestDistance then
@@ -870,6 +895,7 @@ local DECOR_CRYSTAL_ALT = Color3.fromRGB(110, 220, 255)
 local function buildZoneDecor(parent, zone, baseY)
 	for index = 1, zone.DecorCount do
 		local x, z = randomDecorSpot(zone)
+		if Progression.Reserved(Vector3.new(x, baseY, z), 8) then continue end
 
 		if zone.DecorType == "Bamboo" then
 			makeColumn(parent, "Stalk", rng:NextNumber(12, 26), 1.1, x, baseY, z, zone.DecorColor, Enum.Material.SmoothPlastic, true)
@@ -1582,6 +1608,8 @@ for _, zoneId in ipairs(Config.ZoneOrder) do
 		buildZone(zoneId)
 	end
 end
+
+Progression.Build()
 
 Players.PlayerAdded:Connect(onPlayerAdded)
 Players.PlayerRemoving:Connect(onPlayerRemoving)

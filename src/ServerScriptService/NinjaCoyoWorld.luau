@@ -133,6 +133,7 @@ local function isOnPath(x, z, margin)
 end
 
 local function isFreeSpot(x, z, clearance)
+	if require(script.Parent:WaitForChild("NinjaCoyoProgression")).Reserved(Vector3.new(x, 0, z), clearance) then return false end
 	for _, hill in ipairs(Config.TreasureTerraces) do
 		if flatDistance(x, z, hill.Center) < hill.Radius * 1.6 + clearance then return false end
 	end
@@ -194,6 +195,12 @@ local function buildTerrain()
 
 	-- Base ground, top surface at y = 0
 	terrain:FillBlock(CFrame.new(GROUND_CENTER.X, -GROUND_SIZE.Y / 2, GROUND_CENTER.Z), GROUND_SIZE, Enum.Material.Grass)
+
+	-- Foundations for the two new zones beyond the original terrain.
+	for _, id in ipairs({ "Sky", "Celestial" }) do
+		local zone = Config.Zones[id]
+		terrain:FillBlock(CFrame.new(zone.Center.X, -5, zone.Center.Z), Vector3.new(zone.Size + 12, 10, zone.Size + 12), zone.FloorMaterial)
+	end
 
 	-- Rolling mounds
 	for index = 1, MOUND_COUNT do

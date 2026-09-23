@@ -18,7 +18,7 @@ Config.StartCameraDistance = 18
 
 -- Zone walls and gates (the gate is always on the zone's +Z side)
 Config.FenceHeight = 12
-Config.BarrierHeight = 200
+Config.BarrierHeight = 1400
 Config.GateWidth = 16
 
 -- Coyo
@@ -304,7 +304,7 @@ Config.NumberSuffixes = {
 -- Zones
 ----------------------------------------------------------------
 
-Config.ZoneOrder = { "Meadow", "Bamboo", "Sakura", "Snow", "Volcano", "Spirit" }
+Config.ZoneOrder = { "Meadow", "Bamboo", "Sakura", "Snow", "Volcano", "Spirit", "Sky", "Celestial" }
 
 -- Walled zones form a chain northwards (-Z) from the Meadow. Each has its gate on
 -- its +Z side and an opening in its back wall leading to the next zone's gate.
@@ -454,51 +454,81 @@ Config.Zones = {
 }
 
 ----------------------------------------------------------------
--- Unlocks (each roughly 8x the last)
+-- Floating routes: total platforms, rise per jump, and required Ninja Jump level.
+Config.PlatformRoutes = {
+	Meadow = { Count = 3, Rise = 8, JumpLevel = 0 },
+	Bamboo = { Count = 4, Rise = 11, JumpLevel = 1 },
+	Sakura = { Count = 5, Rise = 15, JumpLevel = 2 },
+	Snow = { Count = 6, Rise = 18, JumpLevel = 3 },
+	Volcano = { Count = 7, Rise = 25, JumpLevel = 5 },
+	Spirit = { Count = 8, Rise = 48, JumpLevel = 7 },
+	Sky = { Count = 9, Rise = 55, JumpLevel = 8 },
+	Celestial = { Count = 10, Rise = 70, JumpLevel = 10 },
+}
+
+for index, id in ipairs({ "Sky", "Celestial" }) do
+	local zone = table.clone(Config.Zones.Spirit)
+	zone.DisplayName = index == 1 and "Sky Monastery" or "Celestial Summit"
+	zone.Center = Vector3.new(0, 0, -975 - index * 190)
+	zone.RequiredUnlock = id .. "Gate"
+	zone.CoinValue = index == 1 and 1800 or 3000
+	zone.ChestValueMin = index == 1 and 10000 or 18000
+	zone.ChestValueMax = index == 1 and 25000 or 40000
+	zone.EnemyMinLevel, zone.EnemyMaxLevel = 25 + index * 5, 30 + index * 5
+	zone.EnemyReward = index == 1 and 18000 or 25000
+	zone.FloorColor = index == 1 and Color3.fromRGB(140, 190, 215) or Color3.fromRGB(230, 204, 135)
+	zone.DecorColor = index == 1 and Color3.fromRGB(110, 220, 255) or Color3.fromRGB(255, 210, 90)
+	Config.Zones[id] = zone
+end
+
+-- Unlocks
 ----------------------------------------------------------------
 
-Config.UnlockOrder = { "Katana", "BambooGate", "SakuraGate", "SnowGate", "VolcanoGate", "SpiritGate" }
+Config.UnlockOrder = { "Katana", "BambooGate", "SakuraGate", "SnowGate", "VolcanoGate", "SpiritGate", "SkyGate", "CelestialGate" }
 
 Config.Unlocks = {
 	Katana = {
 		DisplayName = "Katana",
 		Description = "Slash chests and enemies",
-		Cost = 100,
+		Cost = 50,
 		UnlockMessage = "Equip it and click to slash. Enemies will now hunt you!",
 	},
 	BambooGate = {
 		DisplayName = "Bamboo Forest",
 		Description = "New zone: coins worth x4",
-		Cost = 750,
+		Cost = 500,
 		UnlockMessage = "The Bamboo Forest gate is open!",
 	},
 	SakuraGate = {
 		DisplayName = "Sakura Grove",
 		Description = "New zone: coins worth x15",
-		Cost = 6000,
+		Cost = 1000,
 		UnlockMessage = "The Sakura Grove gate is open!",
 	},
 	SnowGate = {
 		DisplayName = "Snowy Peak",
 		Description = "New zone: coins worth x60",
-		Cost = 50000,
+		Cost = 2500,
 		UnlockMessage = "The Snowy Peak gate is open!",
 	},
 	VolcanoGate = {
 		DisplayName = "Oni Volcano",
 		Description = "New zone: coins worth x250",
-		Cost = 400000,
+		Cost = 10000,
 		UnlockMessage = "The Oni Volcano gate is open!",
 	},
 	SpiritGate = {
 		DisplayName = "Spirit Realm",
 		Description = "New zone: coins worth x1000",
-		Cost = 3000000,
+		Cost = 50000,
 		UnlockMessage = "The Spirit Realm gate is open!",
 	},
 }
 
 ----------------------------------------------------------------
+Config.Unlocks.SkyGate = { DisplayName = "Sky Monastery", Description = "New zone: sky treasure trails", Cost = 150000, UnlockMessage = "The Sky Monastery gate is open!" }
+Config.Unlocks.CelestialGate = { DisplayName = "Celestial Summit", Description = "New zone: the highest treasure route", Cost = 300000, UnlockMessage = "The Celestial Summit gate is open!" }
+
 -- Dojo upgrades
 -- ValueMode: "Add" = base + perLevel * level, "Multiply" = base * perLevel ^ level
 -- DisplayMode: "Number" shows the value, "Multiplier" shows it as x1.5

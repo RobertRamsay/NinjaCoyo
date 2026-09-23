@@ -82,6 +82,9 @@ local rng={NextNumber=function(_,lo,hi)return (lo+hi)/2 end}
 local Scenery={IsPickupClear=function()return true end}
 local chestsFolder={GetChildren=function()return {}end}
 local rayParams={}
+local zonesFolder={}
+local RaycastParams={new=function()return {}end}
+local Progression={Reserved=function()return false end}
 local workspace={Raycast=function(_,origin)return {Position=Vector3.new(origin.X,0,origin.Z),Material=Enum.Material.Grass,Normal={Y=1}}end}
 -- SPAWN_INSERT
 local positions={}

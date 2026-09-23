@@ -35,6 +35,7 @@ assert(not Wardrobe.OwnsGoldSword(player) and grants==0,"Cancellation does not g
 onPassPurchased(player,42,true)
 assert(Wardrobe.OwnsGoldSword(player) and grants==1 and notices==1,"Successful server purchase grants immediately")
 local Enemies={}
+local Progression={IsSafe=function()return false end}
 local enemiesByPlayer={[player]={}}
 -- ENEMIES_INSERT
 local humanoid={Health=100,Sit=false}
