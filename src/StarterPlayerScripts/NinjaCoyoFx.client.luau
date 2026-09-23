@@ -345,7 +345,15 @@ local function faceNearestEnemy(character)
 	end
 	if nearest then
 		local target = Vector3.new(nearest.Position.X, root.Position.Y, nearest.Position.Z)
-		if (target - root.Position).Magnitude > 0.01 then root.CFrame = CFrame.lookAt(root.Position, target) end
+		if (target - root.Position).Magnitude > 0.01 then
+			-- Keep movement auto-rotation from undoing the turn during the strike.
+			local autoRotate = humanoid.AutoRotate
+			humanoid.AutoRotate = false
+			root.CFrame = CFrame.lookAt(root.Position, target)
+			task.delay(0.2, function()
+				if humanoid.Parent then humanoid.AutoRotate = autoRotate end
+			end)
+		end
 	end
 end
 
