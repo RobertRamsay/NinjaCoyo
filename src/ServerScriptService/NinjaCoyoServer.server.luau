@@ -1169,6 +1169,26 @@ local function createCoyo(player, character)
 	playerPets[player] = pack
 end
 
+-- Reset both the physical dog and its old job so it cannot be pulled back away.
+local function recoverCoyo(petState)
+	local root = petState.RootPart
+	local position = (root.CFrame * CFrame.new(petState.FollowOffset)).Position
+	local ground = findGround(position, 8, 120)
+	position = Vector3.new(position.X, ground and ground.Y + Config.CoyoHeight or root.Position.Y, position.Z)
+	petState.Model:PivotTo(CFrame.new(position) * root.CFrame.Rotation)
+	petState.Body.AssemblyLinearVelocity = Vector3.zero
+	petState.Body.AssemblyAngularVelocity = Vector3.zero
+	petState.AlignPosition.Position = position
+	petState.AlignOrientation.CFrame = root.CFrame.Rotation
+	petState.TargetCoin = nil
+	petState.TargetChest = nil
+	petState.Pounce = nil
+	petState.HopTime = 0
+	petState.StuckTime = 0
+	petState.ProgressPosition = position
+	petState.RecoverUntil = os.clock() + 3
+end
+
 local function updateCoyo(player, petState, deltaTime, claimedCoins)
 	local data = playerData[player]
 	if data == nil then
@@ -1196,7 +1216,7 @@ local function updateCoyo(player, petState, deltaTime, claimedCoins)
 			end
 		end
 	end
-	if targetCoin == nil then
+	if targetCoin == nil and os.clock() >= (petState.RecoverUntil or 0) then
 		targetCoin = findNearestCoin(data, rootPart.Position, sniffRadius, claimedCoins)
 	end
 	if targetCoin ~= nil then
@@ -1218,7 +1238,7 @@ local function updateCoyo(player, petState, deltaTime, claimedCoins)
 		petState.Pounce = nil
 	end
 	local targetEnemy = nil
-	if targetChest == nil then
+	if targetChest == nil and now >= (petState.RecoverUntil or 0) then
 		targetEnemy = pounce and pounce.Enemy
 			or Enemies.FindNearestEnemy(player, rootPart.Position, Config.CoyoEnemyRange)
 		if targetEnemy == nil then
@@ -1291,12 +1311,25 @@ local function updateCoyo(player, petState, deltaTime, claimedCoins)
 	local flatOffset = Vector3.new(goalPosition.X - body.Position.X, 0, goalPosition.Z - body.Position.Z)
 	local distanceToGoal = flatOffset.Magnitude
 
-	-- Teleport to the ninja if left far behind
-	if targetChest == nil and targetEnemy == nil
-		and (body.Position - rootPart.Position).Magnitude > Config.CoyoTeleportDistance then
-		petState.Model:PivotTo(CFrame.new(goalPosition))
-		body.AssemblyLinearVelocity = Vector3.zero
-		distanceToGoal = 0
+	-- Healthy chest work can finish away from the player, but no job bypasses
+	-- the hard leash or the watchdog for a dog making no travel progress.
+	local separation = (body.Position - rootPart.Position).Magnitude
+	petState.ProgressPosition = petState.ProgressPosition or body.Position
+	local progress = petState.ProgressPosition
+	local moved = Vector3.new(body.Position.X - progress.X, 0, body.Position.Z - progress.Z).Magnitude
+	if distanceToGoal <= 6 or moved >= 2 then
+		petState.StuckTime = 0
+		petState.ProgressPosition = body.Position
+	else
+		petState.StuckTime = (petState.StuckTime or 0) + deltaTime
+	end
+	local workingChest = targetChest ~= nil and now - petState.LastBite < 3
+	if separation > Config.CoyoTeleportDistance * 3
+		or (separation > Config.CoyoTeleportDistance and not workingChest)
+		or body.Position.Y < rootPart.Position.Y - 60
+		or (petState.StuckTime or 0) >= 5 then
+		recoverCoyo(petState)
+		return
 	end
 
 	-- Little hops while running
@@ -1495,8 +1528,18 @@ end
 RunService.Heartbeat:Connect(function(deltaTime)
 	for player, pack in pairs(playerPets) do
 		local claimedCoins = {}
-		for _, petState in ipairs(pack) do
-			updateCoyo(player, petState, deltaTime, claimedCoins)
+		for index, petState in ipairs(pack) do
+			local root = petState.RootPart
+			if root.Parent ~= nil and player.Character == root.Parent then
+				if petState.Model.Parent ~= petsFolder or petState.Body.Parent ~= petState.Model then
+					petState.Model:Destroy()
+					petState = createCoyoDog(player, root, index)
+					pack[index] = petState
+					recoverCoyo(petState)
+					Wardrobe.ApplyCoat(player)
+				end
+				updateCoyo(player, petState, deltaTime, claimedCoins)
+			end
 		end
 	end
 end)

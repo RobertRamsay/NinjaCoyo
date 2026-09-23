@@ -131,6 +131,19 @@ panelLimit.MaxSize = Vector2.new(660, 540)
 panelLimit.MinSize = Vector2.new(320, 320)
 panelLimit.Parent = panel
 
+local function layoutWardrobe()
+	local size = screenGui.AbsoluteSize
+	wardrobeButton.AnchorPoint = Vector2.zero
+	wardrobeButton.Position = UDim2.fromOffset(8, 128)
+	wardrobeButton.Size = UDim2.fromOffset(80, 44)
+	wardrobeButton.TextScaled = false
+	wardrobeButton.TextSize = 12
+	panelLimit.MinSize = Vector2.zero
+	panel.Size = UDim2.fromOffset(math.min(620, size.X - 24), math.min(500, size.Y - 24))
+end
+screenGui:GetPropertyChangedSignal("AbsoluteSize"):Connect(layoutWardrobe)
+layoutWardrobe()
+
 local panelScale = Instance.new("UIScale")
 panelScale.Parent = panel
 

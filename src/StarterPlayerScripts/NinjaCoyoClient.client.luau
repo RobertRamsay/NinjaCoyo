@@ -244,6 +244,35 @@ local bannerSubtitle = makeLabel(bannerFrame, "", COLOUR_WHITE)
 bannerSubtitle.Position = UDim2.new(0, 12, 0, 56)
 bannerSubtitle.Size = UDim2.new(1, -24, 0, 28)
 
+-- Compact HUD responds to phone rotation and window resizing. Animation scales
+-- remain separate from layout, so a notification cannot grow back to desktop size.
+local compactHud = false
+local function layoutHud()
+	local size = screenGui.AbsoluteSize
+	compactHud = size.X < 900 or size.Y < 600
+	coinFrame.Size = UDim2.fromOffset(compactHud and 132 or 180, compactHud and 30 or 40)
+	coinFrame.Position = UDim2.new(0.5, 0, 0, 6)
+	goalFrame.Size = UDim2.fromOffset(compactHud and 210 or 260, compactHud and 20 or 24)
+	goalFrame.Position = UDim2.new(0.5, 0, 0, compactHud and 42 or 52)
+	dojoButton.AnchorPoint = Vector2.zero
+	dojoButton.Size = UDim2.fromOffset(80, 44)
+	dojoButton.Position = UDim2.fromOffset(8, 76)
+	dojoButton.TextScaled = false
+	dojoButton.TextSize = 16
+	bannerFrame.AnchorPoint = Vector2.new(1, 0)
+	bannerFrame.Position = UDim2.new(1, -8, 0, 72)
+	bannerFrame.Size = UDim2.fromOffset(math.min(compactHud and 220 or 300, size.X - 108), compactHud and 52 or 64)
+	bannerStroke.Thickness = 2
+	bannerTitle.Position = UDim2.fromOffset(8, 5)
+	bannerTitle.Size = UDim2.new(1, -16, 0, compactHud and 20 or 26)
+	bannerSubtitle.Position = UDim2.fromOffset(8, compactHud and 29 or 35)
+	bannerSubtitle.Size = UDim2.new(1, -16, 0, compactHud and 17 or 22)
+	shopFrame.Size = UDim2.new(0, math.min(420, size.X - 24), 0, math.min(440, size.Y - 24))
+	shopSizeLimit.MinSize = Vector2.new(0, 0)
+end
+screenGui:GetPropertyChangedSignal("AbsoluteSize"):Connect(layoutHud)
+layoutHud()
+
 ----------------------------------------------------------------
 -- Display updates
 ----------------------------------------------------------------
@@ -460,18 +489,18 @@ local function createRow(kind, itemId, displayName, accentColour, order)
 
 	local nameLabel = makeLabel(row, displayName, COLOUR_WHITE)
 	nameLabel.Position = UDim2.new(0, 18, 0, 6)
-	nameLabel.Size = UDim2.new(1, -160, 0, 30)
+	nameLabel.Size = UDim2.new(1, -124, 0, 30)
 	nameLabel.TextXAlignment = Enum.TextXAlignment.Left
 
 	local infoLabel = makeLabel(row, "", Color3.fromRGB(200, 190, 215))
 	infoLabel.Position = UDim2.new(0, 18, 0, 38)
-	infoLabel.Size = UDim2.new(1, -160, 0, 24)
+	infoLabel.Size = UDim2.new(1, -124, 0, 24)
 	infoLabel.TextXAlignment = Enum.TextXAlignment.Left
 
 	local buyButton = makeButton(row, "...", COLOUR_CANT_BUY)
 	buyButton.AnchorPoint = Vector2.new(1, 0.5)
 	buyButton.Position = UDim2.new(1, -10, 0.5, 0)
-	buyButton.Size = UDim2.new(0, 130, 0, 50)
+	buyButton.Size = UDim2.new(0, 96, 0, 44)
 	buyButton.Activated:Connect(function()
 		onBuyClicked(kind, itemId)
 	end)
@@ -533,8 +562,8 @@ coinCollectedEvent.OnClientEvent:Connect(function(amount)
 
 	local popup = makeLabel(screenGui, "+" .. formatNumber(amount), COLOUR_GOLD)
 	popup.AnchorPoint = Vector2.new(0.5, 0)
-	popup.Position = UDim2.new(0.5, rng:NextInteger(-80, 80), 0, 104)
-	popup.Size = UDim2.new(0, 100, 0, 30)
+	popup.Position = UDim2.new(0.5, rng:NextInteger(-45, 45), 0, compactHud and 64 or 82)
+	popup.Size = UDim2.fromOffset(64, compactHud and 18 or 24)
 	popup.TextStrokeTransparency = 0.2
 
 	local tween = TweenService:Create(popup, TweenInfo.new(0.8, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
