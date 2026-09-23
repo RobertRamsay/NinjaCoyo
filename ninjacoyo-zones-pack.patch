@@ -1,0 +1,837 @@
+diff --git a/src/ReplicatedStorage/NinjaCoyoConfig.luau b/src/ReplicatedStorage/NinjaCoyoConfig.luau
+index 08644a1..807f2af 100644
+--- a/src/ReplicatedStorage/NinjaCoyoConfig.luau
++++ b/src/ReplicatedStorage/NinjaCoyoConfig.luau
+@@ -21,7 +21,13 @@ Config.BarrierHeight = 200
+ Config.GateWidth = 16
+ 
+ -- Coyo
+-Config.CoyoFollowOffset = Vector3.new(3, 0, 4)
++Config.CoyoPackNames = { "Coyo", "Kiba", "Yuki", "Hana" }
++Config.CoyoPackOffsets = {
++	Vector3.new(3, 0, 4),
++	Vector3.new(-3, 0, 4),
++	Vector3.new(5.5, 0, 0.5),
++	Vector3.new(-5.5, 0, 0.5),
++}
+ Config.CoyoHeight = 1.5
+ Config.CoyoCollectDistance = 3.5
+ Config.CoyoTeleportDistance = 60
+@@ -52,12 +58,7 @@ Config.EnemyDamageGrowth = 1.12
+ Config.EnemyBaseSpeed = 12
+ Config.EnemySpeedPerTier = 0.5
+ Config.EnemyMaxSpeed = 22
+-Config.EnemyRewardMinMultiplier = 2
+-Config.EnemyRewardMaxMultiplier = 5
+-Config.EnemyRewardFloorBase = 25
+-Config.EnemyRewardFloorGrowth = 1.8
+-Config.EnemyRewardCapBase = 1000
+-Config.EnemyRewardCapGrowth = 3
++Config.EnemyRewardGrowth = 1.2
+ Config.TiersPerEnemyType = 5
+ 
+ Config.EnemyTypes = {
+@@ -101,6 +102,14 @@ Config.EnemyTypes = {
+ 		Scale = 1.4,
+ 		Horns = true,
+ 	},
++	{
++		Name = "Spirit Warrior",
++		BodyColor = Color3.fromRGB(90, 160, 230),
++		SkinColor = Color3.fromRGB(200, 235, 255),
++		AccentColor = Color3.fromRGB(200, 120, 255),
++		Scale = 1.5,
++		Horns = true,
++	},
+ }
+ 
+ -- Sound effects
+@@ -252,8 +261,12 @@ Config.NumberSuffixes = {
+ -- Zones
+ ----------------------------------------------------------------
+ 
+-Config.ZoneOrder = { "Meadow", "Bamboo" }
++Config.ZoneOrder = { "Meadow", "Bamboo", "Sakura", "Snow", "Volcano", "Spirit" }
+ 
++-- Walled zones form a chain northwards (-Z) from the Meadow. Each has its gate on
++-- its +Z side and an opening in its back wall leading to the next zone's gate.
++-- EnemyMinLevel/EnemyMaxLevel: the level band of enemies in that zone.
++-- EnemyReward: coins for a kill at EnemyMinLevel (grows by EnemyRewardGrowth per level).
+ Config.Zones = {
+ 	Meadow = {
+ 		DisplayName = "Dojo Meadow",
+@@ -266,11 +279,15 @@ Config.Zones = {
+ 		ChestHits = 3,
+ 		MaxCoins = 60,
+ 		MaxChests = 6,
++		EnemyMinLevel = 1,
++		EnemyMaxLevel = 5,
++		EnemyReward = 12,
+ 		RequiredUnlock = "",
+ 		Build = false,
+ 		FloorColor = Color3.fromRGB(100, 150, 70),
+ 		FloorMaterial = Enum.Material.Grass,
+ 		FenceColor = Color3.fromRGB(170, 140, 80),
++		DecorType = "",
+ 		DecorColor = Color3.fromRGB(120, 168, 70),
+ 		DecorCount = 0,
+ 	},
+@@ -279,27 +296,123 @@ Config.Zones = {
+ 		Center = Vector3.new(0, 0, -215),
+ 		Size = 180,
+ 		SpawnMargin = 8,
+-		CoinValue = 10,
+-		ChestValueMin = 50,
+-		ChestValueMax = 200,
+-		ChestHits = 5,
+-		MaxCoins = 50,
++		CoinValue = 4,
++		ChestValueMin = 25,
++		ChestValueMax = 80,
++		ChestHits = 4,
++		MaxCoins = 45,
+ 		MaxChests = 6,
++		EnemyMinLevel = 5,
++		EnemyMaxLevel = 10,
++		EnemyReward = 50,
+ 		RequiredUnlock = "BambooGate",
+ 		Build = true,
+ 		FloorColor = Color3.fromRGB(86, 130, 58),
+ 		FloorMaterial = Enum.Material.Grass,
+ 		FenceColor = Color3.fromRGB(170, 140, 80),
++		DecorType = "Bamboo",
+ 		DecorColor = Color3.fromRGB(120, 168, 70),
+ 		DecorCount = 45,
+ 	},
++	Sakura = {
++		DisplayName = "Sakura Grove",
++		Center = Vector3.new(0, 0, -405),
++		Size = 180,
++		SpawnMargin = 8,
++		CoinValue = 15,
++		ChestValueMin = 90,
++		ChestValueMax = 300,
++		ChestHits = 5,
++		MaxCoins = 40,
++		MaxChests = 6,
++		EnemyMinLevel = 10,
++		EnemyMaxLevel = 15,
++		EnemyReward = 200,
++		RequiredUnlock = "SakuraGate",
++		Build = true,
++		FloorColor = Color3.fromRGB(120, 165, 80),
++		FloorMaterial = Enum.Material.Grass,
++		FenceColor = Color3.fromRGB(150, 100, 80),
++		DecorType = "Sakura",
++		DecorColor = Color3.fromRGB(255, 183, 206),
++		DecorCount = 22,
++	},
++	Snow = {
++		DisplayName = "Snowy Peak",
++		Center = Vector3.new(0, 0, -595),
++		Size = 180,
++		SpawnMargin = 8,
++		CoinValue = 60,
++		ChestValueMin = 350,
++		ChestValueMax = 1200,
++		ChestHits = 6,
++		MaxCoins = 40,
++		MaxChests = 6,
++		EnemyMinLevel = 15,
++		EnemyMaxLevel = 20,
++		EnemyReward = 800,
++		RequiredUnlock = "SnowGate",
++		Build = true,
++		FloorColor = Color3.fromRGB(235, 240, 248),
++		FloorMaterial = Enum.Material.Snow,
++		FenceColor = Color3.fromRGB(110, 90, 75),
++		DecorType = "SnowPine",
++		DecorColor = Color3.fromRGB(46, 96, 64),
++		DecorCount = 28,
++	},
++	Volcano = {
++		DisplayName = "Oni Volcano",
++		Center = Vector3.new(0, 0, -785),
++		Size = 180,
++		SpawnMargin = 8,
++		CoinValue = 250,
++		ChestValueMin = 1500,
++		ChestValueMax = 5000,
++		ChestHits = 7,
++		MaxCoins = 40,
++		MaxChests = 6,
++		EnemyMinLevel = 20,
++		EnemyMaxLevel = 25,
++		EnemyReward = 3200,
++		RequiredUnlock = "VolcanoGate",
++		Build = true,
++		FloorColor = Color3.fromRGB(45, 38, 36),
++		FloorMaterial = Enum.Material.Basalt,
++		FenceColor = Color3.fromRGB(60, 45, 40),
++		DecorType = "Volcano",
++		DecorColor = Color3.fromRGB(255, 110, 30),
++		DecorCount = 26,
++	},
++	Spirit = {
++		DisplayName = "Spirit Realm",
++		Center = Vector3.new(0, 0, -975),
++		Size = 180,
++		SpawnMargin = 8,
++		CoinValue = 1000,
++		ChestValueMin = 6000,
++		ChestValueMax = 20000,
++		ChestHits = 8,
++		MaxCoins = 40,
++		MaxChests = 6,
++		EnemyMinLevel = 25,
++		EnemyMaxLevel = 30,
++		EnemyReward = 13000,
++		RequiredUnlock = "SpiritGate",
++		Build = true,
++		FloorColor = Color3.fromRGB(40, 28, 60),
++		FloorMaterial = Enum.Material.Slate,
++		FenceColor = Color3.fromRGB(70, 50, 100),
++		DecorType = "Spirit",
++		DecorColor = Color3.fromRGB(170, 110, 255),
++		DecorCount = 30,
++	},
+ }
+ 
+ ----------------------------------------------------------------
+--- Unlocks (each roughly 10x the last)
++-- Unlocks (each roughly 8x the last)
+ ----------------------------------------------------------------
+ 
+-Config.UnlockOrder = { "Katana", "BambooGate" }
++Config.UnlockOrder = { "Katana", "BambooGate", "SakuraGate", "SnowGate", "VolcanoGate", "SpiritGate" }
+ 
+ Config.Unlocks = {
+ 	Katana = {
+@@ -310,9 +423,33 @@ Config.Unlocks = {
+ 	},
+ 	BambooGate = {
+ 		DisplayName = "Bamboo Forest",
+-		Description = "New zone: coins worth x10",
+-		Cost = 1000,
+-		UnlockMessage = "The red gate is open. Coins there are worth x10!",
++		Description = "New zone: coins worth x4",
++		Cost = 750,
++		UnlockMessage = "The Bamboo Forest gate is open!",
++	},
++	SakuraGate = {
++		DisplayName = "Sakura Grove",
++		Description = "New zone: coins worth x15",
++		Cost = 6000,
++		UnlockMessage = "The Sakura Grove gate is open!",
++	},
++	SnowGate = {
++		DisplayName = "Snowy Peak",
++		Description = "New zone: coins worth x60",
++		Cost = 50000,
++		UnlockMessage = "The Snowy Peak gate is open!",
++	},
++	VolcanoGate = {
++		DisplayName = "Oni Volcano",
++		Description = "New zone: coins worth x250",
++		Cost = 400000,
++		UnlockMessage = "The Oni Volcano gate is open!",
++	},
++	SpiritGate = {
++		DisplayName = "Spirit Realm",
++		Description = "New zone: coins worth x1000",
++		Cost = 3000000,
++		UnlockMessage = "The Spirit Realm gate is open!",
+ 	},
+ }
+ 
+@@ -322,7 +459,7 @@ Config.Unlocks = {
+ -- DisplayMode: "Number" shows the value, "Multiplier" shows it as x1.5
+ ----------------------------------------------------------------
+ 
+-Config.UpgradeOrder = { "NinjaSpeed", "NinjaJump", "NinjaHealth", "KatanaPower", "CoyoSniff", "CoyoSpeed", "CoyoBite", "GoldenPaws" }
++Config.UpgradeOrder = { "NinjaSpeed", "NinjaJump", "NinjaHealth", "KatanaPower", "PackSize", "CoyoSniff", "CoyoSpeed", "CoyoBite", "GoldenPaws" }
+ 
+ Config.Upgrades = {
+ 	NinjaSpeed = {
+@@ -373,6 +510,18 @@ Config.Upgrades = {
+ 		ValueMode = "Multiply",
+ 		DisplayMode = "Number",
+ 	},
++	PackSize = {
++		DisplayName = "Wolf Pack",
++		Description = "Another dog joins your pack",
++		Category = "Coyo",
++		MaxLevel = 3,
++		BaseCost = 2000,
++		CostGrowth = 15,
++		BaseValue = 1,
++		PerLevel = 1,
++		ValueMode = "Add",
++		DisplayMode = "Number",
++	},
+ 	CoyoSniff = {
+ 		DisplayName = "Coyo Sniff",
+ 		Description = "Coyo finds coins further away",
+@@ -414,10 +563,10 @@ Config.Upgrades = {
+ 		Description = "Multiplies every coin and chest",
+ 		Category = "Coyo",
+ 		MaxLevel = 10,
+-		BaseCost = 50,
+-		CostGrowth = 1.8,
++		BaseCost = 150,
++		CostGrowth = 2.2,
+ 		BaseValue = 1,
+-		PerLevel = 1.5,
++		PerLevel = 1.2,
+ 		ValueMode = "Multiply",
+ 		DisplayMode = "Multiplier",
+ 	},
+@@ -464,8 +613,6 @@ function Config.GetEnemyStats(tier)
+ 	stats.Health = math.floor(Config.EnemyBaseHealth * (Config.EnemyHealthGrowth ^ (tier - 1)))
+ 	stats.Damage = math.floor(Config.EnemyBaseDamage * (Config.EnemyDamageGrowth ^ (tier - 1)))
+ 	stats.Speed = math.min(Config.EnemyMaxSpeed, Config.EnemyBaseSpeed + Config.EnemySpeedPerTier * (tier - 1))
+-	stats.RewardFloor = math.floor(Config.EnemyRewardFloorBase * (Config.EnemyRewardFloorGrowth ^ (tier - 1)))
+-	stats.RewardCap = math.floor(Config.EnemyRewardCapBase * (Config.EnemyRewardCapGrowth ^ (tier - 1)))
+ 	local typeIndex = (math.floor((tier - 1) / Config.TiersPerEnemyType) % #Config.EnemyTypes) + 1
+ 	stats.Type = Config.EnemyTypes[typeIndex]
+ 	return stats
+diff --git a/src/ServerScriptService/NinjaCoyoEnemies.luau b/src/ServerScriptService/NinjaCoyoEnemies.luau
+index eae681b..b8d761e 100644
+--- a/src/ServerScriptService/NinjaCoyoEnemies.luau
++++ b/src/ServerScriptService/NinjaCoyoEnemies.luau
+@@ -177,14 +177,22 @@ local function onEnemyDied(enemy)
+ 	local position = enemy.Root.Position
+ 
+ 	if data ~= nil and player.Parent ~= nil then
+-		local multiplier = rng:NextNumber(Config.EnemyRewardMinMultiplier, Config.EnemyRewardMaxMultiplier)
+-		local reward = math.floor(data.Coins * multiplier)
+-		reward = math.clamp(reward, enemy.Stats.RewardFloor, enemy.Stats.RewardCap)
+-		data.EnemyTier = data.EnemyTier + 1
++		local zone = Config.Zones[enemy.ZoneId]
++		local reward = math.floor(zone.EnemyReward * (Config.EnemyRewardGrowth ^ (enemy.Tier - zone.EnemyMinLevel)))
++
++		-- Beating your toughest foe so far raises the next one's level
++		if enemy.Tier >= data.EnemyTier then
++			data.EnemyTier = enemy.Tier + 1
++		end
++
++		local nextText = "next foe is Lv " .. math.min(data.EnemyTier, zone.EnemyMaxLevel)
++		if data.EnemyTier > zone.EnemyMaxLevel then
++			nextText = "unlock the next zone for tougher foes"
++		end
+ 
+ 		context.FxEvent:FireAllClients("EnemyDefeat", position, player.UserId, reward)
+ 		context.AddCoins(player, reward, position)
+-		context.NotifyEvent:FireClient(player, string.upper(enemy.Stats.Type.Name) .. " DEFEATED!", "+" .. Config.FormatNumber(reward) .. " Scroll-Coins  -  next foe is Lv " .. data.EnemyTier, true)
++		context.NotifyEvent:FireClient(player, string.upper(enemy.Stats.Type.Name) .. " DEFEATED!", "+" .. Config.FormatNumber(reward) .. " Scroll-Coins  -  " .. nextText, true)
+ 	end
+ 
+ 	task.delay(1.5, function()
+@@ -231,7 +239,13 @@ local function spawnEnemy(player)
+ 		return
+ 	end
+ 
+-	local tier = data.EnemyTier
++	-- Enemy level comes from the ninja's progress, kept inside this zone's level band
++	local zoneId = getZoneAt(spawnPosition)
++	if zoneId == "" then
++		zoneId = "Meadow"
++	end
++	local zone = Config.Zones[zoneId]
++	local tier = math.clamp(data.EnemyTier, zone.EnemyMinLevel, zone.EnemyMaxLevel)
+ 	local stats = Config.GetEnemyStats(tier)
+ 	local enemyType = stats.Type
+ 
+@@ -288,6 +302,7 @@ local function spawnEnemy(player)
+ 	enemy.Root = enemyRoot
+ 	enemy.Owner = player
+ 	enemy.Tier = tier
++	enemy.ZoneId = zoneId
+ 	enemy.Stats = stats
+ 	enemy.Home = spawnPosition
+ 	enemy.LastAttack = 0
+diff --git a/src/ServerScriptService/NinjaCoyoServer.server.luau b/src/ServerScriptService/NinjaCoyoServer.server.luau
+index f8abf8b..656741f 100644
+--- a/src/ServerScriptService/NinjaCoyoServer.server.luau
++++ b/src/ServerScriptService/NinjaCoyoServer.server.luau
+@@ -531,11 +531,11 @@ local function findNearestChest(data, position, radius)
+ 	return nearestChest
+ end
+ 
+-local function findNearestCoin(data, position, radius)
++local function findNearestCoin(data, position, radius, claimedCoins)
+ 	local nearestCoin = nil
+ 	local nearestDistance = radius
+ 	for _, coinModel in ipairs(coinsFolder:GetChildren()) do
+-		if coinModel:GetAttribute("Collected") ~= true then
++		if coinModel:GetAttribute("Collected") ~= true and claimedCoins[coinModel] ~= true then
+ 			if playerHasZone(data, coinModel:GetAttribute("Zone")) then
+ 				local distance = (coinModel:GetAttribute("BasePosition") - position).Magnitude
+ 				if distance < nearestDistance then
+@@ -744,6 +744,100 @@ local function buildWallSegment(parent, zone, centerX, centerZ, sizeX, sizeZ, ba
+ 	makeZonePart(parent, "Barrier", Vector3.new(sizeX, Config.BarrierHeight, sizeZ), CFrame.new(centerX, baseY + Config.BarrierHeight / 2, centerZ), zone.FenceColor, Enum.Material.SmoothPlastic, 1, true)
+ end
+ 
++----------------------------------------------------------------
++-- Zone decor (CanQuery is off on everything, so coins never spawn on top of it)
++----------------------------------------------------------------
++
++local function randomDecorSpot(zone)
++	-- Keep a clear lane down the middle between the gate and the back opening
++	local half = zone.Size / 2
++	for attempt = 1, 20 do
++		local x = zone.Center.X + rng:NextNumber(-half + 5, half - 5)
++		local z = zone.Center.Z + rng:NextNumber(-half + 12, half - 12)
++		if math.abs(x - zone.Center.X) > 10 then
++			return x, z
++		end
++	end
++	return zone.Center.X + half - 10, zone.Center.Z
++end
++
++local function makeColumn(parent, name, height, diameter, x, baseY, z, colour, material, canCollide)
++	local part = makeZonePart(parent, name, Vector3.new(height, diameter, diameter), CFrame.new(x, baseY + height / 2, z) * CFrame.Angles(0, 0, math.rad(90)), colour, material, 0, canCollide)
++	part.Shape = Enum.PartType.Cylinder
++	return part
++end
++
++local function makeDisc(parent, name, thickness, diameter, x, y, z, colour, material, canCollide)
++	local part = makeZonePart(parent, name, Vector3.new(thickness, diameter, diameter), CFrame.new(x, y, z) * CFrame.Angles(0, 0, math.rad(90)), colour, material, 0, canCollide)
++	part.Shape = Enum.PartType.Cylinder
++	return part
++end
++
++local DECOR_TRUNK = Color3.fromRGB(92, 62, 46)
++local DECOR_SNOW = Color3.fromRGB(245, 248, 255)
++local DECOR_ROCK = Color3.fromRGB(40, 34, 32)
++local DECOR_CRYSTAL_ALT = Color3.fromRGB(110, 220, 255)
++
++local function buildZoneDecor(parent, zone, baseY)
++	for index = 1, zone.DecorCount do
++		local x, z = randomDecorSpot(zone)
++
++		if zone.DecorType == "Bamboo" then
++			makeColumn(parent, "Stalk", rng:NextNumber(12, 26), 1.1, x, baseY, z, zone.DecorColor, Enum.Material.SmoothPlastic, true)
++
++		elseif zone.DecorType == "Sakura" then
++			local trunkHeight = rng:NextNumber(6, 9)
++			makeColumn(parent, "Trunk", trunkHeight, 1.4, x, baseY, z, DECOR_TRUNK, Enum.Material.Wood, true)
++			for blossom = 1, 4 do
++				local radius = rng:NextNumber(3.5, 5.5)
++				local offset = Vector3.new(rng:NextNumber(-3, 3), rng:NextNumber(-0.5, 2), rng:NextNumber(-3, 3))
++				local ball = makeZonePart(parent, "Blossom", Vector3.new(radius * 2, radius * 2, radius * 2), CFrame.new(Vector3.new(x, baseY + trunkHeight, z) + offset), zone.DecorColor, Enum.Material.Grass, 0, false)
++				ball.Shape = Enum.PartType.Ball
++			end
++
++		elseif zone.DecorType == "SnowPine" then
++			local trunkHeight = rng:NextNumber(4, 6)
++			makeColumn(parent, "Trunk", trunkHeight, 1.2, x, baseY, z, DECOR_TRUNK, Enum.Material.Wood, true)
++			for layer = 1, 4 do
++				local layerY = baseY + trunkHeight + (layer - 1) * 2.4
++				local diameter = 10 - layer * 1.9
++				makeDisc(parent, "Needles", 1.6, diameter, x, layerY, z, zone.DecorColor, Enum.Material.Grass, false)
++				makeDisc(parent, "SnowCap", 0.4, diameter * 0.9, x, layerY + 1, z, DECOR_SNOW, Enum.Material.Snow, false)
++			end
++
++		elseif zone.DecorType == "Volcano" then
++			if rng:NextNumber() < 0.55 then
++				-- Jagged rock spire
++				local height = rng:NextNumber(6, 16)
++				local width = rng:NextNumber(2.5, 5)
++				makeZonePart(parent, "Spire", Vector3.new(width, height, width), CFrame.new(x, baseY + height / 2 - 1, z) * CFrame.Angles(math.rad(rng:NextNumber(-12, 12)), rng:NextNumber(0, math.pi), math.rad(rng:NextNumber(-12, 12))), DECOR_ROCK, Enum.Material.Basalt, 0, true)
++			else
++				-- Glowing lava pool
++				local pool = makeDisc(parent, "Lava", 0.3, rng:NextNumber(6, 12), x, baseY + 0.1, z, zone.DecorColor, Enum.Material.Neon, false)
++				local glow = Instance.new("PointLight")
++				glow.Color = zone.DecorColor
++				glow.Range = 14
++				glow.Brightness = 1.2
++				glow.Parent = pool
++			end
++
++		elseif zone.DecorType == "Spirit" then
++			-- Floating glowing crystal
++			local height = rng:NextNumber(4, 10)
++			local colour = zone.DecorColor
++			if rng:NextNumber() < 0.4 then
++				colour = DECOR_CRYSTAL_ALT
++			end
++			local crystal = makeZonePart(parent, "Crystal", Vector3.new(1.6, height, 1.6), CFrame.new(x, baseY + height / 2 + rng:NextNumber(1, 4), z) * CFrame.Angles(0, rng:NextNumber(0, math.pi), math.rad(rng:NextNumber(-15, 15))), colour, Enum.Material.Neon, 0.15, false)
++			local glow = Instance.new("PointLight")
++			glow.Color = colour
++			glow.Range = 12
++			glow.Brightness = 1
++			glow.Parent = crystal
++		end
++	end
++end
++
+ local function buildZone(zoneId)
+ 	local zone = Config.Zones[zoneId]
+ 	local zoneFolder = makeFolder(zoneId, zonesFolder)
+@@ -762,14 +856,31 @@ local function buildZone(zoneId)
+ 	local floor = makeZonePart(zoneFolder, "Floor", Vector3.new(zone.Size + 4, 1, zone.Size + 4), CFrame.new(cx, baseY - 0.5, cz), zone.FloorColor, zone.FloorMaterial, 0, true)
+ 	floor.CanQuery = true
+ 
+-	-- South, west and east walls
+-	buildWallSegment(zoneFolder, zone, cx, cz - half, zone.Size + 2, 2, baseY)
++	-- South (back) wall: open in the middle if another zone lies beyond it
++	local gateHalf = Config.GateWidth / 2
++	local segmentLength = half - gateHalf
++	local hasNextZone = false
++	local foundThisZone = false
++	for _, otherZoneId in ipairs(Config.ZoneOrder) do
++		if foundThisZone and Config.Zones[otherZoneId].Build == true then
++			hasNextZone = true
++		end
++		if otherZoneId == zoneId then
++			foundThisZone = true
++		end
++	end
++	if hasNextZone then
++		buildWallSegment(zoneFolder, zone, cx - gateHalf - segmentLength / 2, cz - half, segmentLength, 2, baseY)
++		buildWallSegment(zoneFolder, zone, cx + gateHalf + segmentLength / 2, cz - half, segmentLength, 2, baseY)
++	else
++		buildWallSegment(zoneFolder, zone, cx, cz - half, zone.Size + 2, 2, baseY)
++	end
++
++	-- West and east walls
+ 	buildWallSegment(zoneFolder, zone, cx - half, cz, 2, zone.Size + 2, baseY)
+ 	buildWallSegment(zoneFolder, zone, cx + half, cz, 2, zone.Size + 2, baseY)
+ 
+ 	-- North wall with a gap for the gate
+-	local gateHalf = Config.GateWidth / 2
+-	local segmentLength = half - gateHalf
+ 	local gateZ = cz + half
+ 	buildWallSegment(zoneFolder, zone, cx - gateHalf - segmentLength / 2, gateZ, segmentLength, 2, baseY)
+ 	buildWallSegment(zoneFolder, zone, cx + gateHalf + segmentLength / 2, gateZ, segmentLength, 2, baseY)
+@@ -840,14 +951,7 @@ local function buildZone(zoneId)
+ 		end
+ 	end)
+ 
+-	-- Bamboo stalks (CanQuery off so coins never spawn on top of them)
+-	for index = 1, zone.DecorCount do
+-		local stalkHeight = rng:NextNumber(12, 26)
+-		local x = cx + rng:NextNumber(-half + 4, half - 4)
+-		local z = cz + rng:NextNumber(-half + 4, half - 12)
+-		local stalk = makeZonePart(zoneFolder, "Stalk", Vector3.new(stalkHeight, 1.1, 1.1), CFrame.new(x, baseY + stalkHeight / 2, z) * CFrame.Angles(0, 0, math.rad(90)), zone.DecorColor, Enum.Material.SmoothPlastic, 0, true)
+-		stalk.Shape = Enum.PartType.Cylinder
+-	end
++	buildZoneDecor(zoneFolder, zone, baseY)
+ end
+ 
+ ----------------------------------------------------------------
+@@ -875,29 +979,23 @@ local function addCoyoPart(model, body, name, size, colour, offset)
+ 	return part
+ end
+ 
++-- playerPets[player] is the player's pack: a list of dog states (Coyo, Kiba, Yuki, Hana)
+ local function removeCoyo(player)
+-	local petState = playerPets[player]
+-	if petState ~= nil then
+-		if petState.Model ~= nil then
++	local pack = playerPets[player]
++	if pack ~= nil then
++		for _, petState in ipairs(pack) do
+ 			petState.Model:Destroy()
+ 		end
+ 		playerPets[player] = nil
+ 	end
+ end
+ 
+-local function createCoyo(player, character)
+-	removeCoyo(player)
+-
+-	local rootPart = character:WaitForChild("HumanoidRootPart", 10)
+-	if rootPart == nil then
+-		return
+-	end
+-	if character.Parent == nil then
+-		return
+-	end
++local function createCoyoDog(player, rootPart, index)
++	local followOffset = Config.CoyoPackOffsets[index]
++	local dogName = Config.CoyoPackNames[index]
+ 
+ 	local model = Instance.new("Model")
+-	model.Name = player.Name .. "_Coyo"
++	model.Name = player.Name .. "_" .. dogName
+ 
+ 	local body = Instance.new("Part")
+ 	body.Name = "Body"
+@@ -907,7 +1005,7 @@ local function createCoyo(player, character)
+ 	body.CanCollide = false
+ 	body.CanQuery = false
+ 	body.CanTouch = false
+-	body.CFrame = rootPart.CFrame * CFrame.new(Config.CoyoFollowOffset)
++	body.CFrame = rootPart.CFrame * CFrame.new(followOffset)
+ 	body.Parent = model
+ 	model.PrimaryPart = body
+ 
+@@ -964,7 +1062,7 @@ local function createCoyo(player, character)
+ 	nameLabel.Size = UDim2.new(1, 0, 1, 0)
+ 	nameLabel.BackgroundTransparency = 1
+ 	nameLabel.Font = Enum.Font.FredokaOne
+-	nameLabel.Text = "Coyo"
++	nameLabel.Text = dogName
+ 	nameLabel.TextColor3 = Color3.new(1, 1, 1)
+ 	nameLabel.TextStrokeTransparency = 0.3
+ 	nameLabel.TextScaled = true
+@@ -973,19 +1071,45 @@ local function createCoyo(player, character)
+ 	model.Parent = petsFolder
+ 	body:SetNetworkOwner(nil)
+ 
+-	playerPets[player] = {
++	local petState = {
+ 		Model = model,
+ 		Body = body,
+ 		RootPart = rootPart,
+ 		AlignPosition = alignPosition,
+ 		AlignOrientation = alignOrientation,
++		FollowOffset = followOffset,
+ 		TargetCoin = nil,
+ 		HopTime = 0,
+ 		LastBite = 0,
+ 	}
++	return petState
+ end
+ 
+-local function updateCoyo(player, petState, deltaTime)
++local function createCoyo(player, character)
++	removeCoyo(player)
++
++	local rootPart = character:WaitForChild("HumanoidRootPart", 10)
++	if rootPart == nil then
++		return
++	end
++	if character.Parent == nil then
++		return
++	end
++
++	local packSize = 1
++	local data = playerData[player]
++	if data ~= nil then
++		packSize = math.clamp(Config.GetValue("PackSize", data.Upgrades.PackSize), 1, #Config.CoyoPackNames)
++	end
++
++	local pack = {}
++	for index = 1, packSize do
++		table.insert(pack, createCoyoDog(player, rootPart, index))
++	end
++	playerPets[player] = pack
++end
++
++local function updateCoyo(player, petState, deltaTime, claimedCoins)
+ 	local data = playerData[player]
+ 	if data == nil then
+ 		return
+@@ -1003,7 +1127,7 @@ local function updateCoyo(player, petState, deltaTime)
+ 	-- Drop the current target if it's gone or the ninja wandered away from it
+ 	local targetCoin = petState.TargetCoin
+ 	if targetCoin ~= nil then
+-		if targetCoin.Parent == nil or targetCoin:GetAttribute("Collected") == true then
++		if targetCoin.Parent == nil or targetCoin:GetAttribute("Collected") == true or claimedCoins[targetCoin] == true then
+ 			targetCoin = nil
+ 		else
+ 			local coinDistanceFromNinja = (targetCoin:GetAttribute("BasePosition") - rootPart.Position).Magnitude
+@@ -1013,7 +1137,10 @@ local function updateCoyo(player, petState, deltaTime)
+ 		end
+ 	end
+ 	if targetCoin == nil then
+-		targetCoin = findNearestCoin(data, rootPart.Position, sniffRadius)
++		targetCoin = findNearestCoin(data, rootPart.Position, sniffRadius, claimedCoins)
++	end
++	if targetCoin ~= nil then
++		claimedCoins[targetCoin] = true
+ 	end
+ 	petState.TargetCoin = targetCoin
+ 
+@@ -1047,7 +1174,7 @@ local function updateCoyo(player, petState, deltaTime)
+ 		goalPosition = targetCoin:GetAttribute("BasePosition")
+ 		petState.AlignPosition.MaxVelocity = coyoSpeed
+ 	else
+-		goalPosition = (rootPart.CFrame * CFrame.new(Config.CoyoFollowOffset)).Position
++		goalPosition = (rootPart.CFrame * CFrame.new(petState.FollowOffset)).Position
+ 		petState.AlignPosition.MaxVelocity = math.max(coyoSpeed, ninjaSpeed + 6)
+ 	end
+ 
+@@ -1194,6 +1321,13 @@ buyUpgradeFunction.OnServerInvoke = function(player, upgradeId)
+ 	updateLeaderstats(player)
+ 	applyCharacterStats(player)
+ 	sendDataToClient(player)
++
++	if upgradeId == "PackSize" and player.Character ~= nil then
++		task.spawn(function()
++			createCoyo(player, player.Character)
++			Wardrobe.ApplyCoat(player)
++		end)
++	end
+ 	return true, "Upgraded!"
+ end
+ 
+@@ -1214,12 +1348,15 @@ World.Build()
+ 
+ Wardrobe.Init({
+ 	PlayerData = playerData,
+-	GetCoyoModel = function(player)
+-		local petState = playerPets[player]
+-		if petState == nil then
+-			return nil
++	GetCoyoModels = function(player)
++		local models = {}
++		local pack = playerPets[player]
++		if pack ~= nil then
++			for _, petState in ipairs(pack) do
++				table.insert(models, petState.Model)
++			end
+ 		end
+-		return petState.Model
++		return models
+ 	end,
+ 	NotifyEvent = notifyEvent,
+ })
+@@ -1244,8 +1381,11 @@ for _, player in ipairs(Players:GetPlayers()) do
+ end
+ 
+ RunService.Heartbeat:Connect(function(deltaTime)
+-	for player, petState in pairs(playerPets) do
+-		updateCoyo(player, petState, deltaTime)
++	for player, pack in pairs(playerPets) do
++		local claimedCoins = {}
++		for _, petState in ipairs(pack) do
++			updateCoyo(player, petState, deltaTime, claimedCoins)
++		end
+ 	end
+ end)
+ 
+diff --git a/src/ServerScriptService/NinjaCoyoWardrobe.luau b/src/ServerScriptService/NinjaCoyoWardrobe.luau
+index 8e86275..3e8259a 100644
+--- a/src/ServerScriptService/NinjaCoyoWardrobe.luau
++++ b/src/ServerScriptService/NinjaCoyoWardrobe.luau
+@@ -24,7 +24,7 @@ local GLOW_GOLD = Color3.fromRGB(255, 205, 90)
+ -- State (initialised up front)
+ local context = {
+ 	PlayerData = {},
+-	GetCoyoModel = nil,
++	GetCoyoModels = nil,
+ 	NotifyEvent = nil,
+ }
+ local ownedPasses = {}
+@@ -336,20 +336,7 @@ local function makeCoatEffect(body, effect)
+ 	emitter.Parent = body
+ end
+ 
+-local function applyCoat(player)
+-	local data = context.PlayerData[player]
+-	if data == nil then
+-		return
+-	end
+-	local model = context.GetCoyoModel(player)
+-	if model == nil then
+-		return
+-	end
+-	local coat = WardrobeConfig.Coats[data.CoyoCoat]
+-	if coat == nil then
+-		return
+-	end
+-
++local function applyCoatToModel(model, coat)
+ 	for _, part in ipairs(model:GetChildren()) do
+ 		if part:IsA("BasePart") then
+ 			local role = COAT_ROLES[part.Name]
+@@ -379,6 +366,21 @@ local function applyCoat(player)
+ 	end
+ end
+ 
++-- Every dog in the pack wears the chosen coat
++local function applyCoat(player)
++	local data = context.PlayerData[player]
++	if data == nil then
++		return
++	end
++	local coat = WardrobeConfig.Coats[data.CoyoCoat]
++	if coat == nil then
++		return
++	end
++	for _, model in ipairs(context.GetCoyoModels(player)) do
++		applyCoatToModel(model, coat)
++	end
++end
++
+ ----------------------------------------------------------------
+ -- The shrine
+ ----------------------------------------------------------------
+diff --git a/src/ServerScriptService/NinjaCoyoWorld.luau b/src/ServerScriptService/NinjaCoyoWorld.luau
+index 563f20a..435b0ff 100644
+--- a/src/ServerScriptService/NinjaCoyoWorld.luau
++++ b/src/ServerScriptService/NinjaCoyoWorld.luau
+@@ -14,8 +14,10 @@ local terrain = workspace.Terrain
+ local rng = Random.new(7) -- fixed seed so the world looks the same every time
+ 
+ -- Layout
+-local GROUND_CENTER = Vector3.new(0, 0, -60)
+-local GROUND_SIZE = Vector3.new(900, 16, 1000)
++-- The ground stretches north (-Z) to hold the chain of walled zones
++local GROUND_CENTER = Vector3.new(0, 0, -330)
++local GROUND_SIZE = Vector3.new(900, 16, 1560)
++local MOUNTAIN_RING_CENTER = Vector3.new(0, 0, -60)
+ local SPAWN_CLEAR_RADIUS = 30
+ local PATH_WIDTH = 12
+ local LAKE_CENTER = Vector3.new(165, 0, 0)
+@@ -166,6 +168,15 @@ end
+ -- Terrain
+ ----------------------------------------------------------------
+ 
++local function buildMountain(x, z, radius)
++	local centerY = -radius * 0.45
++	terrain:FillBall(Vector3.new(x, centerY, z), radius, Enum.Material.Grass)
++	terrain:FillBall(Vector3.new(x, centerY + radius * 0.62, z), radius * 0.4, Enum.Material.Rock)
++	if radius > 85 then
++		terrain:FillBall(Vector3.new(x, centerY + radius * 0.85, z), radius * 0.2, Enum.Material.Snow)
++	end
++end
++
+ local function buildTerrain()
+ 	terrain:Clear()
+ 	terrain:SetMaterialColor(Enum.Material.Grass, GRASS_GREEN)
+@@ -191,21 +202,32 @@ local function buildTerrain()
+ 		end
+ 	end
+ 
+-	-- Mountain ring with rocky peaks, snow on the biggest
++	-- Mountain ring around the Meadow, with a gap where the zone chain runs north
+ 	for index = 1, MOUNTAIN_COUNT do
+ 		local angle = (index / MOUNTAIN_COUNT) * math.pi * 2 + rng:NextNumber(-0.08, 0.08)
+ 		local distance = MOUNTAIN_RING_RADIUS + rng:NextNumber(-30, 40)
+ 		local radius = rng:NextNumber(60, 95)
+-		local x = GROUND_CENTER.X + math.cos(angle) * distance
+-		local z = GROUND_CENTER.Z + math.sin(angle) * distance
+-		local centerY = -radius * 0.45
+-		terrain:FillBall(Vector3.new(x, centerY, z), radius, Enum.Material.Grass)
+-		terrain:FillBall(Vector3.new(x, centerY + radius * 0.62, z), radius * 0.4, Enum.Material.Rock)
+-		if radius > 85 then
+-			terrain:FillBall(Vector3.new(x, centerY + radius * 0.85, z), radius * 0.2, Enum.Material.Snow)
++		local x = MOUNTAIN_RING_CENTER.X + math.cos(angle) * distance
++		local z = MOUNTAIN_RING_CENTER.Z + math.sin(angle) * distance
++		if isInsideWalledZone(x, z, radius * 0.9 + 12) == false then
++			buildMountain(x, z, radius)
+ 		end
+ 	end
+ 
++	-- Mountains lining both sides of the zone chain, and a final range closing it off
++	local chainStartZ = -130
++	local chainEndZ = -1080
++	for z = chainStartZ, chainEndZ, -95 do
++		for _, side in ipairs({ -1, 1 }) do
++			local radius = rng:NextNumber(60, 90)
++			local x = side * (90 + 14 + radius * 0.9) + rng:NextNumber(-8, 8)
++			buildMountain(x, z + rng:NextNumber(-20, 20), radius)
++		end
++	end
++	for x = -160, 160, 80 do
++		buildMountain(x, chainEndZ - 110, rng:NextNumber(70, 95))
++	end
++
+ 	-- Temple hill with a flat plateau on top
+ 	terrain:FillBall(Vector3.new(TEMPLE_CENTER.X, -22, TEMPLE_CENTER.Z), TEMPLE_HILL_RADIUS, Enum.Material.Grass)
+ 	terrain:FillCylinder(CFrame.new(TEMPLE_CENTER.X, 10, TEMPLE_CENTER.Z), 8, TEMPLE_PLATEAU_RADIUS, Enum.Material.Grass)

@@ -177,14 +177,22 @@ local function onEnemyDied(enemy)
 	local position = enemy.Root.Position
 
 	if data ~= nil and player.Parent ~= nil then
-		local multiplier = rng:NextNumber(Config.EnemyRewardMinMultiplier, Config.EnemyRewardMaxMultiplier)
-		local reward = math.floor(data.Coins * multiplier)
-		reward = math.clamp(reward, enemy.Stats.RewardFloor, enemy.Stats.RewardCap)
-		data.EnemyTier = data.EnemyTier + 1
+		local zone = Config.Zones[enemy.ZoneId]
+		local reward = math.floor(zone.EnemyReward * (Config.EnemyRewardGrowth ^ (enemy.Tier - zone.EnemyMinLevel)))
+
+		-- Beating your toughest foe so far raises the next one's level
+		if enemy.Tier >= data.EnemyTier then
+			data.EnemyTier = enemy.Tier + 1
+		end
+
+		local nextText = "next foe is Lv " .. math.min(data.EnemyTier, zone.EnemyMaxLevel)
+		if data.EnemyTier > zone.EnemyMaxLevel then
+			nextText = "unlock the next zone for tougher foes"
+		end
 
 		context.FxEvent:FireAllClients("EnemyDefeat", position, player.UserId, reward)
 		context.AddCoins(player, reward, position)
-		context.NotifyEvent:FireClient(player, string.upper(enemy.Stats.Type.Name) .. " DEFEATED!", "+" .. Config.FormatNumber(reward) .. " Scroll-Coins  -  next foe is Lv " .. data.EnemyTier, true)
+		context.NotifyEvent:FireClient(player, string.upper(enemy.Stats.Type.Name) .. " DEFEATED!", "+" .. Config.FormatNumber(reward) .. " Scroll-Coins  -  " .. nextText, true)
 	end
 
 	task.delay(1.5, function()
@@ -231,7 +239,13 @@ local function spawnEnemy(player)
 		return
 	end
 
-	local tier = data.EnemyTier
+	-- Enemy level comes from the ninja's progress, kept inside this zone's level band
+	local zoneId = getZoneAt(spawnPosition)
+	if zoneId == "" then
+		zoneId = "Meadow"
+	end
+	local zone = Config.Zones[zoneId]
+	local tier = math.clamp(data.EnemyTier, zone.EnemyMinLevel, zone.EnemyMaxLevel)
 	local stats = Config.GetEnemyStats(tier)
 	local enemyType = stats.Type
 
@@ -288,6 +302,7 @@ local function spawnEnemy(player)
 	enemy.Root = enemyRoot
 	enemy.Owner = player
 	enemy.Tier = tier
+	enemy.ZoneId = zoneId
 	enemy.Stats = stats
 	enemy.Home = spawnPosition
 	enemy.LastAttack = 0

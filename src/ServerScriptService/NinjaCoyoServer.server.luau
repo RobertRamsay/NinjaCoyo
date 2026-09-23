@@ -531,11 +531,11 @@ local function findNearestChest(data, position, radius)
 	return nearestChest
 end
 
-local function findNearestCoin(data, position, radius)
+local function findNearestCoin(data, position, radius, claimedCoins)
 	local nearestCoin = nil
 	local nearestDistance = radius
 	for _, coinModel in ipairs(coinsFolder:GetChildren()) do
-		if coinModel:GetAttribute("Collected") ~= true then
+		if coinModel:GetAttribute("Collected") ~= true and claimedCoins[coinModel] ~= true then
 			if playerHasZone(data, coinModel:GetAttribute("Zone")) then
 				local distance = (coinModel:GetAttribute("BasePosition") - position).Magnitude
 				if distance < nearestDistance then
@@ -744,6 +744,100 @@ local function buildWallSegment(parent, zone, centerX, centerZ, sizeX, sizeZ, ba
 	makeZonePart(parent, "Barrier", Vector3.new(sizeX, Config.BarrierHeight, sizeZ), CFrame.new(centerX, baseY + Config.BarrierHeight / 2, centerZ), zone.FenceColor, Enum.Material.SmoothPlastic, 1, true)
 end
 
+----------------------------------------------------------------
+-- Zone decor (CanQuery is off on everything, so coins never spawn on top of it)
+----------------------------------------------------------------
+
+local function randomDecorSpot(zone)
+	-- Keep a clear lane down the middle between the gate and the back opening
+	local half = zone.Size / 2
+	for attempt = 1, 20 do
+		local x = zone.Center.X + rng:NextNumber(-half + 5, half - 5)
+		local z = zone.Center.Z + rng:NextNumber(-half + 12, half - 12)
+		if math.abs(x - zone.Center.X) > 10 then
+			return x, z
+		end
+	end
+	return zone.Center.X + half - 10, zone.Center.Z
+end
+
+local function makeColumn(parent, name, height, diameter, x, baseY, z, colour, material, canCollide)
+	local part = makeZonePart(parent, name, Vector3.new(height, diameter, diameter), CFrame.new(x, baseY + height / 2, z) * CFrame.Angles(0, 0, math.rad(90)), colour, material, 0, canCollide)
+	part.Shape = Enum.PartType.Cylinder
+	return part
+end
+
+local function makeDisc(parent, name, thickness, diameter, x, y, z, colour, material, canCollide)
+	local part = makeZonePart(parent, name, Vector3.new(thickness, diameter, diameter), CFrame.new(x, y, z) * CFrame.Angles(0, 0, math.rad(90)), colour, material, 0, canCollide)
+	part.Shape = Enum.PartType.Cylinder
+	return part
+end
+
+local DECOR_TRUNK = Color3.fromRGB(92, 62, 46)
+local DECOR_SNOW = Color3.fromRGB(245, 248, 255)
+local DECOR_ROCK = Color3.fromRGB(40, 34, 32)
+local DECOR_CRYSTAL_ALT = Color3.fromRGB(110, 220, 255)
+
+local function buildZoneDecor(parent, zone, baseY)
+	for index = 1, zone.DecorCount do
+		local x, z = randomDecorSpot(zone)
+
+		if zone.DecorType == "Bamboo" then
+			makeColumn(parent, "Stalk", rng:NextNumber(12, 26), 1.1, x, baseY, z, zone.DecorColor, Enum.Material.SmoothPlastic, true)
+
+		elseif zone.DecorType == "Sakura" then
+			local trunkHeight = rng:NextNumber(6, 9)
+			makeColumn(parent, "Trunk", trunkHeight, 1.4, x, baseY, z, DECOR_TRUNK, Enum.Material.Wood, true)
+			for blossom = 1, 4 do
+				local radius = rng:NextNumber(3.5, 5.5)
+				local offset = Vector3.new(rng:NextNumber(-3, 3), rng:NextNumber(-0.5, 2), rng:NextNumber(-3, 3))
+				local ball = makeZonePart(parent, "Blossom", Vector3.new(radius * 2, radius * 2, radius * 2), CFrame.new(Vector3.new(x, baseY + trunkHeight, z) + offset), zone.DecorColor, Enum.Material.Grass, 0, false)
+				ball.Shape = Enum.PartType.Ball
+			end
+
+		elseif zone.DecorType == "SnowPine" then
+			local trunkHeight = rng:NextNumber(4, 6)
+			makeColumn(parent, "Trunk", trunkHeight, 1.2, x, baseY, z, DECOR_TRUNK, Enum.Material.Wood, true)
+			for layer = 1, 4 do
+				local layerY = baseY + trunkHeight + (layer - 1) * 2.4
+				local diameter = 10 - layer * 1.9
+				makeDisc(parent, "Needles", 1.6, diameter, x, layerY, z, zone.DecorColor, Enum.Material.Grass, false)
+				makeDisc(parent, "SnowCap", 0.4, diameter * 0.9, x, layerY + 1, z, DECOR_SNOW, Enum.Material.Snow, false)
+			end
+
+		elseif zone.DecorType == "Volcano" then
+			if rng:NextNumber() < 0.55 then
+				-- Jagged rock spire
+				local height = rng:NextNumber(6, 16)
+				local width = rng:NextNumber(2.5, 5)
+				makeZonePart(parent, "Spire", Vector3.new(width, height, width), CFrame.new(x, baseY + height / 2 - 1, z) * CFrame.Angles(math.rad(rng:NextNumber(-12, 12)), rng:NextNumber(0, math.pi), math.rad(rng:NextNumber(-12, 12))), DECOR_ROCK, Enum.Material.Basalt, 0, true)
+			else
+				-- Glowing lava pool
+				local pool = makeDisc(parent, "Lava", 0.3, rng:NextNumber(6, 12), x, baseY + 0.1, z, zone.DecorColor, Enum.Material.Neon, false)
+				local glow = Instance.new("PointLight")
+				glow.Color = zone.DecorColor
+				glow.Range = 14
+				glow.Brightness = 1.2
+				glow.Parent = pool
+			end
+
+		elseif zone.DecorType == "Spirit" then
+			-- Floating glowing crystal
+			local height = rng:NextNumber(4, 10)
+			local colour = zone.DecorColor
+			if rng:NextNumber() < 0.4 then
+				colour = DECOR_CRYSTAL_ALT
+			end
+			local crystal = makeZonePart(parent, "Crystal", Vector3.new(1.6, height, 1.6), CFrame.new(x, baseY + height / 2 + rng:NextNumber(1, 4), z) * CFrame.Angles(0, rng:NextNumber(0, math.pi), math.rad(rng:NextNumber(-15, 15))), colour, Enum.Material.Neon, 0.15, false)
+			local glow = Instance.new("PointLight")
+			glow.Color = colour
+			glow.Range = 12
+			glow.Brightness = 1
+			glow.Parent = crystal
+		end
+	end
+end
+
 local function buildZone(zoneId)
 	local zone = Config.Zones[zoneId]
 	local zoneFolder = makeFolder(zoneId, zonesFolder)
@@ -762,14 +856,31 @@ local function buildZone(zoneId)
 	local floor = makeZonePart(zoneFolder, "Floor", Vector3.new(zone.Size + 4, 1, zone.Size + 4), CFrame.new(cx, baseY - 0.5, cz), zone.FloorColor, zone.FloorMaterial, 0, true)
 	floor.CanQuery = true
 
-	-- South, west and east walls
-	buildWallSegment(zoneFolder, zone, cx, cz - half, zone.Size + 2, 2, baseY)
+	-- South (back) wall: open in the middle if another zone lies beyond it
+	local gateHalf = Config.GateWidth / 2
+	local segmentLength = half - gateHalf
+	local hasNextZone = false
+	local foundThisZone = false
+	for _, otherZoneId in ipairs(Config.ZoneOrder) do
+		if foundThisZone and Config.Zones[otherZoneId].Build == true then
+			hasNextZone = true
+		end
+		if otherZoneId == zoneId then
+			foundThisZone = true
+		end
+	end
+	if hasNextZone then
+		buildWallSegment(zoneFolder, zone, cx - gateHalf - segmentLength / 2, cz - half, segmentLength, 2, baseY)
+		buildWallSegment(zoneFolder, zone, cx + gateHalf + segmentLength / 2, cz - half, segmentLength, 2, baseY)
+	else
+		buildWallSegment(zoneFolder, zone, cx, cz - half, zone.Size + 2, 2, baseY)
+	end
+
+	-- West and east walls
 	buildWallSegment(zoneFolder, zone, cx - half, cz, 2, zone.Size + 2, baseY)
 	buildWallSegment(zoneFolder, zone, cx + half, cz, 2, zone.Size + 2, baseY)
 
 	-- North wall with a gap for the gate
-	local gateHalf = Config.GateWidth / 2
-	local segmentLength = half - gateHalf
 	local gateZ = cz + half
 	buildWallSegment(zoneFolder, zone, cx - gateHalf - segmentLength / 2, gateZ, segmentLength, 2, baseY)
 	buildWallSegment(zoneFolder, zone, cx + gateHalf + segmentLength / 2, gateZ, segmentLength, 2, baseY)
@@ -840,14 +951,7 @@ local function buildZone(zoneId)
 		end
 	end)
 
-	-- Bamboo stalks (CanQuery off so coins never spawn on top of them)
-	for index = 1, zone.DecorCount do
-		local stalkHeight = rng:NextNumber(12, 26)
-		local x = cx + rng:NextNumber(-half + 4, half - 4)
-		local z = cz + rng:NextNumber(-half + 4, half - 12)
-		local stalk = makeZonePart(zoneFolder, "Stalk", Vector3.new(stalkHeight, 1.1, 1.1), CFrame.new(x, baseY + stalkHeight / 2, z) * CFrame.Angles(0, 0, math.rad(90)), zone.DecorColor, Enum.Material.SmoothPlastic, 0, true)
-		stalk.Shape = Enum.PartType.Cylinder
-	end
+	buildZoneDecor(zoneFolder, zone, baseY)
 end
 
 ----------------------------------------------------------------
@@ -875,29 +979,23 @@ local function addCoyoPart(model, body, name, size, colour, offset)
 	return part
 end
 
+-- playerPets[player] is the player's pack: a list of dog states (Coyo, Kiba, Yuki, Hana)
 local function removeCoyo(player)
-	local petState = playerPets[player]
-	if petState ~= nil then
-		if petState.Model ~= nil then
+	local pack = playerPets[player]
+	if pack ~= nil then
+		for _, petState in ipairs(pack) do
 			petState.Model:Destroy()
 		end
 		playerPets[player] = nil
 	end
 end
 
-local function createCoyo(player, character)
-	removeCoyo(player)
-
-	local rootPart = character:WaitForChild("HumanoidRootPart", 10)
-	if rootPart == nil then
-		return
-	end
-	if character.Parent == nil then
-		return
-	end
+local function createCoyoDog(player, rootPart, index)
+	local followOffset = Config.CoyoPackOffsets[index]
+	local dogName = Config.CoyoPackNames[index]
 
 	local model = Instance.new("Model")
-	model.Name = player.Name .. "_Coyo"
+	model.Name = player.Name .. "_" .. dogName
 
 	local body = Instance.new("Part")
 	body.Name = "Body"
@@ -907,7 +1005,7 @@ local function createCoyo(player, character)
 	body.CanCollide = false
 	body.CanQuery = false
 	body.CanTouch = false
-	body.CFrame = rootPart.CFrame * CFrame.new(Config.CoyoFollowOffset)
+	body.CFrame = rootPart.CFrame * CFrame.new(followOffset)
 	body.Parent = model
 	model.PrimaryPart = body
 
@@ -964,7 +1062,7 @@ local function createCoyo(player, character)
 	nameLabel.Size = UDim2.new(1, 0, 1, 0)
 	nameLabel.BackgroundTransparency = 1
 	nameLabel.Font = Enum.Font.FredokaOne
-	nameLabel.Text = "Coyo"
+	nameLabel.Text = dogName
 	nameLabel.TextColor3 = Color3.new(1, 1, 1)
 	nameLabel.TextStrokeTransparency = 0.3
 	nameLabel.TextScaled = true
@@ -973,19 +1071,45 @@ local function createCoyo(player, character)
 	model.Parent = petsFolder
 	body:SetNetworkOwner(nil)
 
-	playerPets[player] = {
+	local petState = {
 		Model = model,
 		Body = body,
 		RootPart = rootPart,
 		AlignPosition = alignPosition,
 		AlignOrientation = alignOrientation,
+		FollowOffset = followOffset,
 		TargetCoin = nil,
 		HopTime = 0,
 		LastBite = 0,
 	}
+	return petState
 end
 
-local function updateCoyo(player, petState, deltaTime)
+local function createCoyo(player, character)
+	removeCoyo(player)
+
+	local rootPart = character:WaitForChild("HumanoidRootPart", 10)
+	if rootPart == nil then
+		return
+	end
+	if character.Parent == nil then
+		return
+	end
+
+	local packSize = 1
+	local data = playerData[player]
+	if data ~= nil then
+		packSize = math.clamp(Config.GetValue("PackSize", data.Upgrades.PackSize), 1, #Config.CoyoPackNames)
+	end
+
+	local pack = {}
+	for index = 1, packSize do
+		table.insert(pack, createCoyoDog(player, rootPart, index))
+	end
+	playerPets[player] = pack
+end
+
+local function updateCoyo(player, petState, deltaTime, claimedCoins)
 	local data = playerData[player]
 	if data == nil then
 		return
@@ -1003,7 +1127,7 @@ local function updateCoyo(player, petState, deltaTime)
 	-- Drop the current target if it's gone or the ninja wandered away from it
 	local targetCoin = petState.TargetCoin
 	if targetCoin ~= nil then
-		if targetCoin.Parent == nil or targetCoin:GetAttribute("Collected") == true then
+		if targetCoin.Parent == nil or targetCoin:GetAttribute("Collected") == true or claimedCoins[targetCoin] == true then
 			targetCoin = nil
 		else
 			local coinDistanceFromNinja = (targetCoin:GetAttribute("BasePosition") - rootPart.Position).Magnitude
@@ -1013,7 +1137,10 @@ local function updateCoyo(player, petState, deltaTime)
 		end
 	end
 	if targetCoin == nil then
-		targetCoin = findNearestCoin(data, rootPart.Position, sniffRadius)
+		targetCoin = findNearestCoin(data, rootPart.Position, sniffRadius, claimedCoins)
+	end
+	if targetCoin ~= nil then
+		claimedCoins[targetCoin] = true
 	end
 	petState.TargetCoin = targetCoin
 
@@ -1047,7 +1174,7 @@ local function updateCoyo(player, petState, deltaTime)
 		goalPosition = targetCoin:GetAttribute("BasePosition")
 		petState.AlignPosition.MaxVelocity = coyoSpeed
 	else
-		goalPosition = (rootPart.CFrame * CFrame.new(Config.CoyoFollowOffset)).Position
+		goalPosition = (rootPart.CFrame * CFrame.new(petState.FollowOffset)).Position
 		petState.AlignPosition.MaxVelocity = math.max(coyoSpeed, ninjaSpeed + 6)
 	end
 
@@ -1194,6 +1321,13 @@ buyUpgradeFunction.OnServerInvoke = function(player, upgradeId)
 	updateLeaderstats(player)
 	applyCharacterStats(player)
 	sendDataToClient(player)
+
+	if upgradeId == "PackSize" and player.Character ~= nil then
+		task.spawn(function()
+			createCoyo(player, player.Character)
+			Wardrobe.ApplyCoat(player)
+		end)
+	end
 	return true, "Upgraded!"
 end
 
@@ -1214,12 +1348,15 @@ World.Build()
 
 Wardrobe.Init({
 	PlayerData = playerData,
-	GetCoyoModel = function(player)
-		local petState = playerPets[player]
-		if petState == nil then
-			return nil
+	GetCoyoModels = function(player)
+		local models = {}
+		local pack = playerPets[player]
+		if pack ~= nil then
+			for _, petState in ipairs(pack) do
+				table.insert(models, petState.Model)
+			end
 		end
-		return petState.Model
+		return models
 	end,
 	NotifyEvent = notifyEvent,
 })
@@ -1244,8 +1381,11 @@ for _, player in ipairs(Players:GetPlayers()) do
 end
 
 RunService.Heartbeat:Connect(function(deltaTime)
-	for player, petState in pairs(playerPets) do
-		updateCoyo(player, petState, deltaTime)
+	for player, pack in pairs(playerPets) do
+		local claimedCoins = {}
+		for _, petState in ipairs(pack) do
+			updateCoyo(player, petState, deltaTime, claimedCoins)
+		end
 	end
 end)
 

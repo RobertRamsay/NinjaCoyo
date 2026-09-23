@@ -14,8 +14,10 @@ local terrain = workspace.Terrain
 local rng = Random.new(7) -- fixed seed so the world looks the same every time
 
 -- Layout
-local GROUND_CENTER = Vector3.new(0, 0, -60)
-local GROUND_SIZE = Vector3.new(900, 16, 1000)
+-- The ground stretches north (-Z) to hold the chain of walled zones
+local GROUND_CENTER = Vector3.new(0, 0, -330)
+local GROUND_SIZE = Vector3.new(900, 16, 1560)
+local MOUNTAIN_RING_CENTER = Vector3.new(0, 0, -60)
 local SPAWN_CLEAR_RADIUS = 30
 local PATH_WIDTH = 12
 local LAKE_CENTER = Vector3.new(165, 0, 0)
@@ -166,6 +168,15 @@ end
 -- Terrain
 ----------------------------------------------------------------
 
+local function buildMountain(x, z, radius)
+	local centerY = -radius * 0.45
+	terrain:FillBall(Vector3.new(x, centerY, z), radius, Enum.Material.Grass)
+	terrain:FillBall(Vector3.new(x, centerY + radius * 0.62, z), radius * 0.4, Enum.Material.Rock)
+	if radius > 85 then
+		terrain:FillBall(Vector3.new(x, centerY + radius * 0.85, z), radius * 0.2, Enum.Material.Snow)
+	end
+end
+
 local function buildTerrain()
 	terrain:Clear()
 	terrain:SetMaterialColor(Enum.Material.Grass, GRASS_GREEN)
@@ -191,19 +202,30 @@ local function buildTerrain()
 		end
 	end
 
-	-- Mountain ring with rocky peaks, snow on the biggest
+	-- Mountain ring around the Meadow, with a gap where the zone chain runs north
 	for index = 1, MOUNTAIN_COUNT do
 		local angle = (index / MOUNTAIN_COUNT) * math.pi * 2 + rng:NextNumber(-0.08, 0.08)
 		local distance = MOUNTAIN_RING_RADIUS + rng:NextNumber(-30, 40)
 		local radius = rng:NextNumber(60, 95)
-		local x = GROUND_CENTER.X + math.cos(angle) * distance
-		local z = GROUND_CENTER.Z + math.sin(angle) * distance
-		local centerY = -radius * 0.45
-		terrain:FillBall(Vector3.new(x, centerY, z), radius, Enum.Material.Grass)
-		terrain:FillBall(Vector3.new(x, centerY + radius * 0.62, z), radius * 0.4, Enum.Material.Rock)
-		if radius > 85 then
-			terrain:FillBall(Vector3.new(x, centerY + radius * 0.85, z), radius * 0.2, Enum.Material.Snow)
+		local x = MOUNTAIN_RING_CENTER.X + math.cos(angle) * distance
+		local z = MOUNTAIN_RING_CENTER.Z + math.sin(angle) * distance
+		if isInsideWalledZone(x, z, radius * 0.9 + 12) == false then
+			buildMountain(x, z, radius)
 		end
+	end
+
+	-- Mountains lining both sides of the zone chain, and a final range closing it off
+	local chainStartZ = -130
+	local chainEndZ = -1080
+	for z = chainStartZ, chainEndZ, -95 do
+		for _, side in ipairs({ -1, 1 }) do
+			local radius = rng:NextNumber(60, 90)
+			local x = side * (90 + 14 + radius * 0.9) + rng:NextNumber(-8, 8)
+			buildMountain(x, z + rng:NextNumber(-20, 20), radius)
+		end
+	end
+	for x = -160, 160, 80 do
+		buildMountain(x, chainEndZ - 110, rng:NextNumber(70, 95))
 	end
 
 	-- Temple hill with a flat plateau on top

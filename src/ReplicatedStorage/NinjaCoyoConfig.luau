@@ -21,7 +21,13 @@ Config.BarrierHeight = 200
 Config.GateWidth = 16
 
 -- Coyo
-Config.CoyoFollowOffset = Vector3.new(3, 0, 4)
+Config.CoyoPackNames = { "Coyo", "Kiba", "Yuki", "Hana" }
+Config.CoyoPackOffsets = {
+	Vector3.new(3, 0, 4),
+	Vector3.new(-3, 0, 4),
+	Vector3.new(5.5, 0, 0.5),
+	Vector3.new(-5.5, 0, 0.5),
+}
 Config.CoyoHeight = 1.5
 Config.CoyoCollectDistance = 3.5
 Config.CoyoTeleportDistance = 60
@@ -52,12 +58,7 @@ Config.EnemyDamageGrowth = 1.12
 Config.EnemyBaseSpeed = 12
 Config.EnemySpeedPerTier = 0.5
 Config.EnemyMaxSpeed = 22
-Config.EnemyRewardMinMultiplier = 2
-Config.EnemyRewardMaxMultiplier = 5
-Config.EnemyRewardFloorBase = 25
-Config.EnemyRewardFloorGrowth = 1.8
-Config.EnemyRewardCapBase = 1000
-Config.EnemyRewardCapGrowth = 3
+Config.EnemyRewardGrowth = 1.2
 Config.TiersPerEnemyType = 5
 
 Config.EnemyTypes = {
@@ -99,6 +100,14 @@ Config.EnemyTypes = {
 		SkinColor = Color3.fromRGB(90, 30, 100),
 		AccentColor = Color3.fromRGB(255, 80, 80),
 		Scale = 1.4,
+		Horns = true,
+	},
+	{
+		Name = "Spirit Warrior",
+		BodyColor = Color3.fromRGB(90, 160, 230),
+		SkinColor = Color3.fromRGB(200, 235, 255),
+		AccentColor = Color3.fromRGB(200, 120, 255),
+		Scale = 1.5,
 		Horns = true,
 	},
 }
@@ -252,8 +261,12 @@ Config.NumberSuffixes = {
 -- Zones
 ----------------------------------------------------------------
 
-Config.ZoneOrder = { "Meadow", "Bamboo" }
+Config.ZoneOrder = { "Meadow", "Bamboo", "Sakura", "Snow", "Volcano", "Spirit" }
 
+-- Walled zones form a chain northwards (-Z) from the Meadow. Each has its gate on
+-- its +Z side and an opening in its back wall leading to the next zone's gate.
+-- EnemyMinLevel/EnemyMaxLevel: the level band of enemies in that zone.
+-- EnemyReward: coins for a kill at EnemyMinLevel (grows by EnemyRewardGrowth per level).
 Config.Zones = {
 	Meadow = {
 		DisplayName = "Dojo Meadow",
@@ -266,11 +279,15 @@ Config.Zones = {
 		ChestHits = 3,
 		MaxCoins = 60,
 		MaxChests = 6,
+		EnemyMinLevel = 1,
+		EnemyMaxLevel = 5,
+		EnemyReward = 12,
 		RequiredUnlock = "",
 		Build = false,
 		FloorColor = Color3.fromRGB(100, 150, 70),
 		FloorMaterial = Enum.Material.Grass,
 		FenceColor = Color3.fromRGB(170, 140, 80),
+		DecorType = "",
 		DecorColor = Color3.fromRGB(120, 168, 70),
 		DecorCount = 0,
 	},
@@ -279,27 +296,123 @@ Config.Zones = {
 		Center = Vector3.new(0, 0, -215),
 		Size = 180,
 		SpawnMargin = 8,
-		CoinValue = 10,
-		ChestValueMin = 50,
-		ChestValueMax = 200,
-		ChestHits = 5,
-		MaxCoins = 50,
+		CoinValue = 4,
+		ChestValueMin = 25,
+		ChestValueMax = 80,
+		ChestHits = 4,
+		MaxCoins = 45,
 		MaxChests = 6,
+		EnemyMinLevel = 5,
+		EnemyMaxLevel = 10,
+		EnemyReward = 50,
 		RequiredUnlock = "BambooGate",
 		Build = true,
 		FloorColor = Color3.fromRGB(86, 130, 58),
 		FloorMaterial = Enum.Material.Grass,
 		FenceColor = Color3.fromRGB(170, 140, 80),
+		DecorType = "Bamboo",
 		DecorColor = Color3.fromRGB(120, 168, 70),
 		DecorCount = 45,
+	},
+	Sakura = {
+		DisplayName = "Sakura Grove",
+		Center = Vector3.new(0, 0, -405),
+		Size = 180,
+		SpawnMargin = 8,
+		CoinValue = 15,
+		ChestValueMin = 90,
+		ChestValueMax = 300,
+		ChestHits = 5,
+		MaxCoins = 40,
+		MaxChests = 6,
+		EnemyMinLevel = 10,
+		EnemyMaxLevel = 15,
+		EnemyReward = 200,
+		RequiredUnlock = "SakuraGate",
+		Build = true,
+		FloorColor = Color3.fromRGB(120, 165, 80),
+		FloorMaterial = Enum.Material.Grass,
+		FenceColor = Color3.fromRGB(150, 100, 80),
+		DecorType = "Sakura",
+		DecorColor = Color3.fromRGB(255, 183, 206),
+		DecorCount = 22,
+	},
+	Snow = {
+		DisplayName = "Snowy Peak",
+		Center = Vector3.new(0, 0, -595),
+		Size = 180,
+		SpawnMargin = 8,
+		CoinValue = 60,
+		ChestValueMin = 350,
+		ChestValueMax = 1200,
+		ChestHits = 6,
+		MaxCoins = 40,
+		MaxChests = 6,
+		EnemyMinLevel = 15,
+		EnemyMaxLevel = 20,
+		EnemyReward = 800,
+		RequiredUnlock = "SnowGate",
+		Build = true,
+		FloorColor = Color3.fromRGB(235, 240, 248),
+		FloorMaterial = Enum.Material.Snow,
+		FenceColor = Color3.fromRGB(110, 90, 75),
+		DecorType = "SnowPine",
+		DecorColor = Color3.fromRGB(46, 96, 64),
+		DecorCount = 28,
+	},
+	Volcano = {
+		DisplayName = "Oni Volcano",
+		Center = Vector3.new(0, 0, -785),
+		Size = 180,
+		SpawnMargin = 8,
+		CoinValue = 250,
+		ChestValueMin = 1500,
+		ChestValueMax = 5000,
+		ChestHits = 7,
+		MaxCoins = 40,
+		MaxChests = 6,
+		EnemyMinLevel = 20,
+		EnemyMaxLevel = 25,
+		EnemyReward = 3200,
+		RequiredUnlock = "VolcanoGate",
+		Build = true,
+		FloorColor = Color3.fromRGB(45, 38, 36),
+		FloorMaterial = Enum.Material.Basalt,
+		FenceColor = Color3.fromRGB(60, 45, 40),
+		DecorType = "Volcano",
+		DecorColor = Color3.fromRGB(255, 110, 30),
+		DecorCount = 26,
+	},
+	Spirit = {
+		DisplayName = "Spirit Realm",
+		Center = Vector3.new(0, 0, -975),
+		Size = 180,
+		SpawnMargin = 8,
+		CoinValue = 1000,
+		ChestValueMin = 6000,
+		ChestValueMax = 20000,
+		ChestHits = 8,
+		MaxCoins = 40,
+		MaxChests = 6,
+		EnemyMinLevel = 25,
+		EnemyMaxLevel = 30,
+		EnemyReward = 13000,
+		RequiredUnlock = "SpiritGate",
+		Build = true,
+		FloorColor = Color3.fromRGB(40, 28, 60),
+		FloorMaterial = Enum.Material.Slate,
+		FenceColor = Color3.fromRGB(70, 50, 100),
+		DecorType = "Spirit",
+		DecorColor = Color3.fromRGB(170, 110, 255),
+		DecorCount = 30,
 	},
 }
 
 ----------------------------------------------------------------
--- Unlocks (each roughly 10x the last)
+-- Unlocks (each roughly 8x the last)
 ----------------------------------------------------------------
 
-Config.UnlockOrder = { "Katana", "BambooGate" }
+Config.UnlockOrder = { "Katana", "BambooGate", "SakuraGate", "SnowGate", "VolcanoGate", "SpiritGate" }
 
 Config.Unlocks = {
 	Katana = {
@@ -310,9 +423,33 @@ Config.Unlocks = {
 	},
 	BambooGate = {
 		DisplayName = "Bamboo Forest",
-		Description = "New zone: coins worth x10",
-		Cost = 1000,
-		UnlockMessage = "The red gate is open. Coins there are worth x10!",
+		Description = "New zone: coins worth x4",
+		Cost = 750,
+		UnlockMessage = "The Bamboo Forest gate is open!",
+	},
+	SakuraGate = {
+		DisplayName = "Sakura Grove",
+		Description = "New zone: coins worth x15",
+		Cost = 6000,
+		UnlockMessage = "The Sakura Grove gate is open!",
+	},
+	SnowGate = {
+		DisplayName = "Snowy Peak",
+		Description = "New zone: coins worth x60",
+		Cost = 50000,
+		UnlockMessage = "The Snowy Peak gate is open!",
+	},
+	VolcanoGate = {
+		DisplayName = "Oni Volcano",
+		Description = "New zone: coins worth x250",
+		Cost = 400000,
+		UnlockMessage = "The Oni Volcano gate is open!",
+	},
+	SpiritGate = {
+		DisplayName = "Spirit Realm",
+		Description = "New zone: coins worth x1000",
+		Cost = 3000000,
+		UnlockMessage = "The Spirit Realm gate is open!",
 	},
 }
 
@@ -322,7 +459,7 @@ Config.Unlocks = {
 -- DisplayMode: "Number" shows the value, "Multiplier" shows it as x1.5
 ----------------------------------------------------------------
 
-Config.UpgradeOrder = { "NinjaSpeed", "NinjaJump", "NinjaHealth", "KatanaPower", "CoyoSniff", "CoyoSpeed", "CoyoBite", "GoldenPaws" }
+Config.UpgradeOrder = { "NinjaSpeed", "NinjaJump", "NinjaHealth", "KatanaPower", "PackSize", "CoyoSniff", "CoyoSpeed", "CoyoBite", "GoldenPaws" }
 
 Config.Upgrades = {
 	NinjaSpeed = {
@@ -373,6 +510,18 @@ Config.Upgrades = {
 		ValueMode = "Multiply",
 		DisplayMode = "Number",
 	},
+	PackSize = {
+		DisplayName = "Wolf Pack",
+		Description = "Another dog joins your pack",
+		Category = "Coyo",
+		MaxLevel = 3,
+		BaseCost = 2000,
+		CostGrowth = 15,
+		BaseValue = 1,
+		PerLevel = 1,
+		ValueMode = "Add",
+		DisplayMode = "Number",
+	},
 	CoyoSniff = {
 		DisplayName = "Coyo Sniff",
 		Description = "Coyo finds coins further away",
@@ -414,10 +563,10 @@ Config.Upgrades = {
 		Description = "Multiplies every coin and chest",
 		Category = "Coyo",
 		MaxLevel = 10,
-		BaseCost = 50,
-		CostGrowth = 1.8,
+		BaseCost = 150,
+		CostGrowth = 2.2,
 		BaseValue = 1,
-		PerLevel = 1.5,
+		PerLevel = 1.2,
 		ValueMode = "Multiply",
 		DisplayMode = "Multiplier",
 	},
@@ -464,8 +613,6 @@ function Config.GetEnemyStats(tier)
 	stats.Health = math.floor(Config.EnemyBaseHealth * (Config.EnemyHealthGrowth ^ (tier - 1)))
 	stats.Damage = math.floor(Config.EnemyBaseDamage * (Config.EnemyDamageGrowth ^ (tier - 1)))
 	stats.Speed = math.min(Config.EnemyMaxSpeed, Config.EnemyBaseSpeed + Config.EnemySpeedPerTier * (tier - 1))
-	stats.RewardFloor = math.floor(Config.EnemyRewardFloorBase * (Config.EnemyRewardFloorGrowth ^ (tier - 1)))
-	stats.RewardCap = math.floor(Config.EnemyRewardCapBase * (Config.EnemyRewardCapGrowth ^ (tier - 1)))
 	local typeIndex = (math.floor((tier - 1) / Config.TiersPerEnemyType) % #Config.EnemyTypes) + 1
 	stats.Type = Config.EnemyTypes[typeIndex]
 	return stats

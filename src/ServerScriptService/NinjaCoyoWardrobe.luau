@@ -24,7 +24,7 @@ local GLOW_GOLD = Color3.fromRGB(255, 205, 90)
 -- State (initialised up front)
 local context = {
 	PlayerData = {},
-	GetCoyoModel = nil,
+	GetCoyoModels = nil,
 	NotifyEvent = nil,
 }
 local ownedPasses = {}
@@ -336,20 +336,7 @@ local function makeCoatEffect(body, effect)
 	emitter.Parent = body
 end
 
-local function applyCoat(player)
-	local data = context.PlayerData[player]
-	if data == nil then
-		return
-	end
-	local model = context.GetCoyoModel(player)
-	if model == nil then
-		return
-	end
-	local coat = WardrobeConfig.Coats[data.CoyoCoat]
-	if coat == nil then
-		return
-	end
-
+local function applyCoatToModel(model, coat)
 	for _, part in ipairs(model:GetChildren()) do
 		if part:IsA("BasePart") then
 			local role = COAT_ROLES[part.Name]
@@ -376,6 +363,21 @@ local function applyCoat(player)
 	end
 	if coat.Effect ~= "" then
 		makeCoatEffect(body, coat.Effect)
+	end
+end
+
+-- Every dog in the pack wears the chosen coat
+local function applyCoat(player)
+	local data = context.PlayerData[player]
+	if data == nil then
+		return
+	end
+	local coat = WardrobeConfig.Coats[data.CoyoCoat]
+	if coat == nil then
+		return
+	end
+	for _, model in ipairs(context.GetCoyoModels(player)) do
+		applyCoatToModel(model, coat)
 	end
 end
 
