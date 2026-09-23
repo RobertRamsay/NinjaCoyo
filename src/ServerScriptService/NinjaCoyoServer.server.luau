@@ -68,6 +68,7 @@ local buyUpgradeFunction = makeRemote("RemoteFunction", "BuyUpgrade")
 local buyUnlockFunction = makeRemote("RemoteFunction", "BuyUnlock")
 local getDataFunction = makeRemote("RemoteFunction", "GetData")
 local dataUpdatedEvent = makeRemote("RemoteEvent", "DataUpdated")
+local gateOpenedEvent = makeRemote("RemoteEvent", "GateOpened")
 local coinCollectedEvent = makeRemote("RemoteEvent", "CoinCollected")
 local notifyEvent = makeRemote("RemoteEvent", "Notify")
 local fxEvent = makeRemote("RemoteEvent", "Fx")
@@ -714,6 +715,12 @@ local function tryBuyUnlock(player, unlockId)
 	data.Unlocks[unlockId] = true
 	updateLeaderstats(player)
 	sendDataToClient(player)
+	for _, zoneId in ipairs(Config.ZoneOrder) do
+		if Config.Zones[zoneId].RequiredUnlock == unlockId then
+			gateOpenedEvent:FireClient(player, unlockId)
+			break
+		end
+	end
 	notifyEvent:FireClient(player, string.upper(info.DisplayName) .. " UNLOCKED!", info.UnlockMessage, true)
 	task.spawn(applyUnlockEffects, player, unlockId)
 	return true, "Unlocked!"
@@ -1082,6 +1089,8 @@ local function createCoyoDog(player, rootPart, index)
 		AlignOrientation = alignOrientation,
 		FollowOffset = followOffset,
 		TargetCoin = nil,
+		TargetChest = nil,
+		Pounce = nil,
 		HopTime = 0,
 		LastBite = 0,
 	}
@@ -1147,27 +1156,69 @@ local function updateCoyo(player, petState, deltaTime, claimedCoins)
 	end
 	petState.TargetCoin = targetCoin
 
-	-- Enemies near the ninja come first, then chests, then coins
-	local targetEnemy = Enemies.FindNearestEnemy(player, rootPart.Position, Config.CoyoEnemyRange)
-	local targetChest = findNearestChest(data, rootPart.Position, math.max(sniffRadius, Config.CoyoChestRange))
+	-- A chosen chest remains the job until it opens, even if the ninja walks away.
+	local targetChest = petState.TargetChest
+	if targetChest ~= nil and (targetChest.Parent == nil or targetChest.PrimaryPart == nil
+		or targetChest:GetAttribute("Opened") == true) then
+		targetChest = nil
+	end
+	local now = os.clock()
+	local pounce = petState.Pounce
+	if pounce ~= nil and (pounce.Enemy.Dead or pounce.Enemy.Root.Parent == nil
+		or pounce.Enemy.Humanoid.Health <= 0) then
+		pounce = nil
+		petState.Pounce = nil
+	end
+	local targetEnemy = nil
+	if targetChest == nil then
+		targetEnemy = pounce and pounce.Enemy
+			or Enemies.FindNearestEnemy(player, rootPart.Position, Config.CoyoEnemyRange)
+		if targetEnemy == nil then
+			targetChest = findNearestChest(data, rootPart.Position, math.max(sniffRadius, Config.CoyoChestRange))
+		end
+	end
+	petState.TargetChest = targetChest
 
 	-- Pick where Coyo wants to be
 	local goalPosition = nil
+	local faceTarget = nil
+	local attackLift = 0
 	if targetEnemy ~= nil then
-		goalPosition = targetEnemy.Root.Position
-		petState.AlignPosition.MaxVelocity = coyoSpeed + 8
-		if (body.Position - goalPosition).Magnitude < Config.CoyoBiteRange then
-			local now = os.clock()
-			if now - petState.LastBite >= Config.CoyoBiteCooldown then
-				petState.LastBite = now
+		faceTarget = targetEnemy.Root.Position
+		local away = Vector3.new(body.Position.X - faceTarget.X, 0, body.Position.Z - faceTarget.Z)
+		local direction = away.Magnitude > 0.01 and away.Unit or Vector3.new(1, 0, 0)
+		if pounce == nil and away.Magnitude <= Config.CoyoAttackStandOff + 1
+			and now - petState.LastBite >= Config.CoyoBiteCooldown then
+			pounce = { Enemy = targetEnemy, Started = now, Direction = direction, Hit = false }
+			petState.Pounce = pounce
+			petState.LastBite = now
+		end
+		local standOff = Config.CoyoAttackStandOff
+		if pounce ~= nil then
+			local phase = math.clamp((now - pounce.Started) / Config.CoyoPounceDuration, 0, 1)
+			local leap = math.sin(phase * math.pi)
+			direction = pounce.Direction
+			standOff = standOff - (standOff - 2.2) * leap
+			attackLift = Config.CoyoPounceHeight * leap
+			-- Damage lands only once per leap and only when Coyo actually reaches the foe.
+			if not pounce.Hit and phase >= 0.3 and phase <= 0.85
+				and (body.Position - faceTarget).Magnitude <= Config.CoyoBiteRange then
+				pounce.Hit = true
 				Enemies.DamageEnemy(player, targetEnemy, Config.GetValue("CoyoBite", data.Upgrades.CoyoBite))
 			end
+			if phase >= 1 then
+				petState.Pounce = nil
+			end
 		end
+		goalPosition = faceTarget + direction * standOff
+		petState.AlignPosition.MaxVelocity = math.max(coyoSpeed + 8, 32)
 	elseif targetChest ~= nil then
-		goalPosition = targetChest.PrimaryPart.Position
+		faceTarget = targetChest.PrimaryPart.Position
+		local away = Vector3.new(body.Position.X - faceTarget.X, 0, body.Position.Z - faceTarget.Z)
+		local direction = away.Magnitude > 0.01 and away.Unit or Vector3.new(1, 0, 0)
+		goalPosition = faceTarget + direction * 3.2
 		petState.AlignPosition.MaxVelocity = coyoSpeed
-		if (body.Position - goalPosition).Magnitude < Config.CoyoBiteRange then
-			local now = os.clock()
+		if (body.Position - faceTarget).Magnitude < Config.CoyoBiteRange then
 			if now - petState.LastBite >= Config.CoyoBiteCooldown then
 				petState.LastBite = now
 				hitChest(targetChest, player)
@@ -1193,24 +1244,28 @@ local function updateCoyo(player, petState, deltaTime, claimedCoins)
 	local distanceToGoal = flatOffset.Magnitude
 
 	-- Teleport to the ninja if left far behind
-	if (body.Position - rootPart.Position).Magnitude > Config.CoyoTeleportDistance then
+	if targetChest == nil and targetEnemy == nil
+		and (body.Position - rootPart.Position).Magnitude > Config.CoyoTeleportDistance then
 		petState.Model:PivotTo(CFrame.new(goalPosition))
+		body.AssemblyLinearVelocity = Vector3.zero
 		distanceToGoal = 0
 	end
 
 	-- Little hops while running
-	if distanceToGoal > 1.5 then
+	if targetEnemy == nil and distanceToGoal > 1.5 then
 		petState.HopTime = petState.HopTime + deltaTime * Config.CoyoHopSpeed
 		local hop = math.abs(math.sin(petState.HopTime)) * Config.CoyoHopHeight
 		goalPosition = goalPosition + Vector3.new(0, hop, 0)
 	else
 		petState.HopTime = 0
 	end
-	petState.AlignPosition.Position = goalPosition
+	petState.AlignPosition.Position = goalPosition + Vector3.new(0, attackLift, 0)
 
 	-- Face the running direction, or the same way as the ninja when resting
 	local faceDirection = nil
-	if distanceToGoal > 1.5 then
+	if faceTarget ~= nil then
+		faceDirection = Vector3.new(faceTarget.X - body.Position.X, 0, faceTarget.Z - body.Position.Z)
+	elseif distanceToGoal > 1.5 then
 		faceDirection = flatOffset.Unit
 	else
 		local look = rootPart.CFrame.LookVector

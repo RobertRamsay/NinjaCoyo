@@ -15,6 +15,10 @@ local buyUpgradeFunction = remotes:WaitForChild("BuyUpgrade")
 local buyUnlockFunction = remotes:WaitForChild("BuyUnlock")
 local getDataFunction = remotes:WaitForChild("GetData")
 local dataUpdatedEvent = remotes:WaitForChild("DataUpdated")
+local gateOpenedEvent = remotes:WaitForChild("GateOpened")
+gateOpenedEvent.OnClientEvent:Connect(function()
+	Sounds.PlayMusicIfIdle()
+end)
 local coinCollectedEvent = remotes:WaitForChild("CoinCollected")
 local notifyEvent = remotes:WaitForChild("Notify")
 
@@ -44,16 +48,6 @@ local spinAngle = 0
 local bannerToken = 0
 local coinStreak = 0
 local lastCoinTime = 0
-local hasReceivedData = false
-
--- Unlocks that open a zone gate (these start the music)
-local gateUnlocks = {}
-for _, zoneId in ipairs(Config.ZoneOrder) do
-	local requiredUnlock = Config.Zones[zoneId].RequiredUnlock
-	if requiredUnlock ~= "" then
-		gateUnlocks[requiredUnlock] = true
-	end
-end
 local canDoubleJump = false
 local hasDoubleJumped = false
 
@@ -360,22 +354,11 @@ local function applyData(newData)
 			currentData.Upgrades[upgradeId] = level
 		end
 	end
-	local openedGate = false
 	for _, unlockId in ipairs(Config.UnlockOrder) do
 		if newData.Unlocks[unlockId] == true then
-			if currentData.Unlocks[unlockId] ~= true and gateUnlocks[unlockId] == true then
-				openedGate = true
-			end
 			currentData.Unlocks[unlockId] = true
 		end
 	end
-
-	-- The first data after joining only sets the starting point: gates you already
-	-- own must not start the music
-	if openedGate and hasReceivedData then
-		Sounds.PlayMusicIfIdle()
-	end
-	hasReceivedData = true
 
 	coinLabel.Text = "📜 " .. formatNumber(currentData.Coins)
 	refreshShop()

@@ -34,7 +34,7 @@ music.Parent = soundFolder
 
 -- Load every sound in the background so the first play isn't delayed
 task.spawn(function()
-	local list = { music }
+	local list = {}
 	for _, template in pairs(templates) do
 		if template.SoundId ~= "" then
 			table.insert(list, template)
@@ -61,16 +61,30 @@ function Sounds.Play(name, pitch, volumeScale)
 	Debris:AddItem(sound, 4)
 end
 
--- Starts the music from the beginning, unless it is already playing (then it carries on)
+-- Keep loading requests separate from playback so another gate cannot restart either.
+local musicLoading = false
+
 function Sounds.PlayMusicIfIdle()
-	if music.SoundId == "" then
+	if music.SoundId == "" or musicLoading or music.IsPlaying then
 		return
 	end
-	if music.IsPlaying then
-		return
-	end
-	music.TimePosition = 0
-	music:Play()
+	musicLoading = true
+	task.spawn(function()
+		local success, message = pcall(function()
+			if not music.IsLoaded then
+				ContentProvider:PreloadAsync({ music })
+			end
+		end)
+		musicLoading = false
+		if not success or not music.IsLoaded then
+			warn("NinjaCoyo: music could not load (" .. music.SoundId
+				.. "). Check the audio's moderation status and permission for this experience. "
+				.. tostring(message or "Asset unavailable"))
+			return
+		end
+		music.TimePosition = 0
+		music:Play()
+	end)
 end
 
 return Sounds

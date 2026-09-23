@@ -36,6 +36,9 @@ Config.CoyoHopHeight = 0.6
 Config.CoyoEnemyRange = 30
 Config.CoyoBiteRange = 4.5
 Config.CoyoBiteCooldown = 0.8
+Config.CoyoPounceDuration = 0.55
+Config.CoyoPounceHeight = 2.2
+Config.CoyoAttackStandOff = 5
 Config.CoyoChestRange = 20
 
 -- Ninja
