@@ -16,15 +16,15 @@ local player = Players.LocalPlayer
 local rng = Random.new()
 
 -- Swing tuning (angles are relative to the torso; negative yaw = ninja's right)
-local SWING_WINDUP_TIME = 0.09
-local SWING_SLASH_TIME = 0.13
-local SWING_RECOVER_TIME = 0.14
+local SWING_WINDUP_TIME = 0.07
+local SWING_SLASH_TIME = 0.14
+local SWING_RECOVER_TIME = 0.12
 local ARM_RAISE_START = math.rad(50)
 local ARM_RAISE = math.rad(92)
-local ARM_YAW_WINDUP = math.rad(-75)
-local ARM_YAW_FINISH = math.rad(95)
-local WAIST_TWIST_WINDUP = math.rad(-30)
-local WAIST_TWIST_FINISH = math.rad(40)
+local ARM_YAW_WINDUP = math.rad(-100)
+local ARM_YAW_FINISH = math.rad(115)
+local WAIST_TWIST_WINDUP = math.rad(-40)
+local WAIST_TWIST_FINISH = math.rad(55)
 local BLADE_FORWARD = CFrame.Angles(math.rad(90), 0, 0)
 
 -- Slash arc effect (a wide glowing crescent that sweeps around the ninja)
@@ -240,10 +240,13 @@ local function playSwing(character)
 	swing.ArcPivot = arcPivot
 	swing.ArcTrail = arcTrail
 	swing.Shoulder = findMotor(character, "RightUpperArm", "RightShoulder")
+		or findMotor(character, "Torso", "Right Shoulder")
 	swing.Waist = findMotor(character, "UpperTorso", "Waist")
+	swing.ShoulderC0 = swing.Shoulder and swing.Shoulder.C0
+	swing.WaistC0 = swing.Waist and swing.Waist.C0
 	swing.StartTime = os.clock()
 	swing.EndYaw = ARC_START_YAW + math.rad(180 + math.min(level, 10) * 18)
-	swing.WaistFinish = WAIST_TWIST_FINISH + (level >= 10 and math.pi * 2 or 0)
+	swing.WaistFinish = WAIST_TWIST_FINISH -- Full-circle upgrades affect the trail, not the torso.
 	activeSwings[character] = swing
 	placeArc(swing, ARC_START_YAW)
 
@@ -258,6 +261,8 @@ local function playSwing(character)
 end
 
 local function finishSwing(character, swing)
+	if swing.Shoulder and swing.Shoulder.Parent then swing.Shoulder.C0 = swing.ShoulderC0 end
+	if swing.Waist and swing.Waist.Parent then swing.Waist.C0 = swing.WaistC0 end
 	if swing.BladeTrail ~= nil then
 		swing.BladeTrail.Enabled = false
 	end
@@ -269,8 +274,8 @@ local function finishSwing(character, swing)
 	activeSwings[character] = nil
 end
 
--- Runs both after the Animator (Stepped) and just before rendering (last render step),
--- so the swing pose always wins over the normal hold pose
+-- Offset upper-body joints over the walking/running animation. Restore their
+-- original offsets on completion or interruption; never hold the character root.
 local function updateSwings()
 	local now = os.clock()
 	local totalTime = SWING_WINDUP_TIME + SWING_SLASH_TIME + SWING_RECOVER_TIME
@@ -312,10 +317,10 @@ local function updateSwings()
 			finishSwing(character, swing)
 		else
 			if swing.Shoulder ~= nil then
-				swing.Shoulder.Transform = CFrame.Angles(0, armYaw, 0) * CFrame.Angles(armRaise, 0, 0)
+				swing.Shoulder.C0 = swing.ShoulderC0 * CFrame.Angles(0, armYaw, 0) * CFrame.Angles(armRaise, 0, -armYaw * 0.12)
 			end
 			if swing.Waist ~= nil then
-				swing.Waist.Transform = CFrame.Angles(0, waistTwist, 0)
+				swing.Waist.C0 = swing.WaistC0 * CFrame.Angles(math.abs(waistTwist) * 0.16, waistTwist, -waistTwist * 0.12)
 			end
 			placeArc(swing, arcYaw)
 			swing.ArcTrail.Enabled = slashing
@@ -346,13 +351,8 @@ local function faceNearestEnemy(character)
 	if nearest then
 		local target = Vector3.new(nearest.Position.X, root.Position.Y, nearest.Position.Z)
 		if (target - root.Position).Magnitude > 0.01 then
-			-- Keep movement auto-rotation from undoing the turn during the strike.
-			local autoRotate = humanoid.AutoRotate
-			humanoid.AutoRotate = false
+			-- A one-time aim correction; movement and automatic turning stay free.
 			root.CFrame = CFrame.lookAt(root.Position, target)
-			task.delay(0.2, function()
-				if humanoid.Parent then humanoid.AutoRotate = autoRotate end
-			end)
 		end
 	end
 end

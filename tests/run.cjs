@@ -28,7 +28,7 @@ const movement = fs.readFileSync(path.join(__dirname, 'movement-cases.luau'), 'u
  .replace('-- MOVEMENT_INSERT', read('StarterPlayerScripts/NinjaCoyoMovement.client.luau'));
 const swing = fs.readFileSync(path.join(__dirname, 'swing-cases.luau'), 'utf8')
  .replace('-- SWING_TUNING_INSERT', fx.slice(fx.indexOf('local SWING_WINDUP_TIME'), fx.indexOf('-- Effects tuning')))
- .replace('-- SWING_FUNCTIONS_INSERT', extract(fx, 'createSlashArc') + '\n' + extract(fx, 'playSwing'));
+ .replace('-- SWING_FUNCTIONS_INSERT', extract(fx, 'createSlashArc') + '\n' + extract(fx, 'playSwing') + '\n' + extract(fx, 'finishSwing') + '\n' + extract(fx, 'updateSwings'));
 function publicFunction(source, name) {
  const start = source.indexOf('function ' + name + '(');
  if (start < 0) throw Error('Missing function: ' + name);

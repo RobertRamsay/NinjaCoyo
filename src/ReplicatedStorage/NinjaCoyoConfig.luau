@@ -169,7 +169,7 @@ Config.Wardrobe = {
 	StudioOwnsEverything = true,
 	ShrinePosition = Vector3.new(-45, 0, 45),
 	DoubleCoinsPassId = 0,
-	GoldSwordPassId = 0, -- Permanent Super Gold Sword; create a Roblox pass and set its ID.
+	GoldSwordPassId = 1993376284, -- Permanent Gold Katana game pass.
 
 	OutfitOrder = { "Default", "Crimson", "Shadow", "Jade", "Samurai" },
 	Outfits = {

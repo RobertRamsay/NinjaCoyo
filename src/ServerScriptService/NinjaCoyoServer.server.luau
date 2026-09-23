@@ -622,13 +622,8 @@ local function onKatanaSwing(player, tool)
 		return
 	end
 
-	local enemy = Enemies.FindNearestEnemy(player, rootPart.Position, Config.KatanaEnemyRange)
-	if enemy ~= nil and not humanoid.Sit then
-		local target = Vector3.new(enemy.Root.Position.X, rootPart.Position.Y, enemy.Root.Position.Z)
-		if (target - rootPart.Position).Magnitude > 0.01 then
-			rootPart.CFrame = CFrame.lookAt(rootPart.Position, target)
-		end
-	end
+	-- Facing is corrected once by the attacking client. Do not snap it again
+	-- when this request arrives; the player may already be moving elsewhere.
 	fxEvent:FireAllClients("Slash", character)
 	local katanaDamage = Config.GetValue("KatanaPower", data.Upgrades.KatanaPower)
 	Enemies.HitInRange(player, rootPart.Position, Config.KatanaEnemyRange, katanaDamage, Wardrobe.OwnsGoldSword(player))

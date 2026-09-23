@@ -38,7 +38,7 @@ local Enemies={}
 local enemiesByPlayer={[player]={}}
 -- ENEMIES_INSERT
 local humanoid={Health=100,Sit=false}
-local root={Position=Vector3.new(0,2,0)}
+local root={Position=Vector3.new(0,2,0),CFrame={}}
 local character={FindFirstChild=function()return root end,FindFirstChildOfClass=function()return humanoid end}
 player.Character=character
 local tool={Parent=character}
@@ -58,7 +58,7 @@ local far,near,outside=enemy(8,120),enemy(-4,200),enemy(11,500)
 enemiesByPlayer[player]={far,near,outside}
 ownedPasses[player]={}
 onKatanaSwing(player,tool)
-assert(root.CFrame.Target.X==-4,"Faces nearest enemy instead of first in list")
+assert(root.CFrame.Target==nil,"Server never repeats the client facing correction")
 assert(near.Humanoid.Health==185 and far.Humanoid.Health==105,"Normal damage retained")
 assert(outside.Humanoid.Health==500,"Out-of-range enemy untouched")
 ownedPasses[player][42]=true
