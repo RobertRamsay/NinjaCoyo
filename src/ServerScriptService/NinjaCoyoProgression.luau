@@ -58,18 +58,24 @@ function Progression.Reserved(position, margin)
 		local zone = Config.Zones[zoneId]
 		local x, z = position.X - zone.Center.X, position.Z - zone.Center.Z
 		if x > 6 - margin and x < 48 + margin and z > -82 - margin and z < 8 + margin then return true end
-		if index % 3 == 0 and math.abs(x - 48) < 27 + margin and math.abs(z - 32) < 25 + margin then return true end
+		if index % 3 == 0 and math.abs(x - 48) < 27 + margin and z > 7 - margin and z < 66 + margin then return true end
 	end
 	return false
 end
 
 local function restDojo(zone, y)
-	local c = Vector3.new(zone.Center.X + 48, y, zone.Center.Z + 32)
+	local c = Vector3.new(zone.Center.X + 48, y + 3, zone.Center.Z + 32)
 	table.insert(shelters, { Center = c })
 	local wood, red = Color3.fromRGB(100, 62, 42), Color3.fromRGB(150, 42, 44)
 	local floor = part("RestDojoFloor", Vector3.new(48, 1, 40), c + Vector3.new(0, 0.5, 0), wood)
 	sign(floor, "REST DOJO\nPlayers welcome • No enemies")
-	part("RestDojoStep", Vector3.new(18, 0.5, 5), c + Vector3.new(0, 0.25, 22), wood)
+	-- Solid timber foundation raises the walking surface four studs above ground.
+	part("RestDojoFoundation", Vector3.new(48, 3, 40), c + Vector3.new(0, -1.5, 0), wood)
+	for step = 1, 4 do
+		local height = step
+		part("RestDojoStep", Vector3.new(18, height, 3),
+			c + Vector3.new(0, -3 + height / 2, 33.5 - step * 3), wood)
+	end
 	part("RestDojoBack", Vector3.new(48, 18, 1), c + Vector3.new(0, 10, -20), wood)
 	for _, side in ipairs({ -1, 1 }) do
 		part("RestDojoSide", Vector3.new(1, 18, 40), c + Vector3.new(side * 24, 10, 0), wood)

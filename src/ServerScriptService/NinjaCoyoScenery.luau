@@ -1,3 +1,4 @@
+local GardenArt = require(script.Parent:WaitForChild("NinjaCoyoGardenArt"))
 -- Hand-placed landmarks and treasure terraces. Kept clear of gate approaches.
 local Config = require(game:GetService("ReplicatedStorage"):WaitForChild("NinjaCoyoConfig"))
 local Scenery = {}
@@ -78,6 +79,8 @@ function Scenery.Build()
 			terrain:FillBlock(CFrame.new(c.X, top / 2, z), Vector3.new(7, top, 5), Enum.Material.Rock)
 		end
 	end
+	GardenArt.Shrine(folder, Vector3.new(-155, ground(-155,210), 210), 1.2)
+	GardenArt.Buddha(folder, Vector3.new(-170, ground(-170,170), 170), 1.3)
 	pavilion(-115, 175, 0.35)
 	pavilion(205, 110, -0.7)
 	pavilion(-44, -190, 0)

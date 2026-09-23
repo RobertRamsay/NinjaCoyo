@@ -1,3 +1,4 @@
+local GardenArt = require(script.Parent:WaitForChild("NinjaCoyoGardenArt"))
 -- NinjaCoyoServer (Script in ServerScriptService)
 
 local Players = game:GetService("Players")
@@ -888,37 +889,31 @@ local function makeDisc(parent, name, thickness, diameter, x, y, z, colour, mate
 end
 
 local DECOR_TRUNK = Color3.fromRGB(92, 62, 46)
-local DECOR_SNOW = Color3.fromRGB(245, 248, 255)
 local DECOR_ROCK = Color3.fromRGB(40, 34, 32)
 local DECOR_CRYSTAL_ALT = Color3.fromRGB(110, 220, 255)
 
 local function buildZoneDecor(parent, zone, baseY)
+	local depth = 1
+	for index, id in ipairs(Config.ZoneOrder) do
+		if Config.Zones[id] == zone then depth = index; break end
+	end
+	local c = zone.Center
+	-- West-side garden landmarks leave the central gate lane and east-side jump routes clear.
+	GardenArt.Shrine(parent, Vector3.new(c.X-60,baseY,c.Z+55), 1 + depth*0.05)
+	GardenArt.Buddha(parent, Vector3.new(c.X-60,baseY,c.Z-60), 1 + depth*0.10)
+	GardenArt.Tree(parent, Vector3.new(c.X-62,baseY,c.Z), 18 + depth*6,
+		Color3.fromRGB(247,163,202), depth*101, true)
 	for index = 1, zone.DecorCount do
 		local x, z = randomDecorSpot(zone)
-		if Progression.Reserved(Vector3.new(x, baseY, z), 8) then continue end
+		if Progression.Reserved(Vector3.new(x, baseY, z), 8) or not Scenery.IsPickupClear(Vector3.new(x,baseY,z)) then continue end
 
 		if zone.DecorType == "Bamboo" then
 			makeColumn(parent, "Stalk", rng:NextNumber(12, 26), 1.1, x, baseY, z, zone.DecorColor, Enum.Material.SmoothPlastic, true)
 
-		elseif zone.DecorType == "Sakura" then
-			local trunkHeight = rng:NextNumber(6, 9)
-			makeColumn(parent, "Trunk", trunkHeight, 1.4, x, baseY, z, DECOR_TRUNK, Enum.Material.Wood, true)
-			for blossom = 1, 4 do
-				local radius = rng:NextNumber(3.5, 5.5)
-				local offset = Vector3.new(rng:NextNumber(-3, 3), rng:NextNumber(-0.5, 2), rng:NextNumber(-3, 3))
-				local ball = makeZonePart(parent, "Blossom", Vector3.new(radius * 2, radius * 2, radius * 2), CFrame.new(Vector3.new(x, baseY + trunkHeight, z) + offset), zone.DecorColor, Enum.Material.Grass, 0, false)
-				ball.Shape = Enum.PartType.Ball
-			end
-
-		elseif zone.DecorType == "SnowPine" then
-			local trunkHeight = rng:NextNumber(4, 6)
-			makeColumn(parent, "Trunk", trunkHeight, 1.2, x, baseY, z, DECOR_TRUNK, Enum.Material.Wood, true)
-			for layer = 1, 4 do
-				local layerY = baseY + trunkHeight + (layer - 1) * 2.4
-				local diameter = 10 - layer * 1.9
-				makeDisc(parent, "Needles", 1.6, diameter, x, layerY, z, zone.DecorColor, Enum.Material.Grass, false)
-				makeDisc(parent, "SnowCap", 0.4, diameter * 0.9, x, layerY + 1, z, DECOR_SNOW, Enum.Material.Snow, false)
-			end
+		elseif zone.DecorType == "Sakura" or zone.DecorType == "Bonsai" or index % 3 == 0 then
+			local blossoms = zone.DecorType ~= "Bonsai" or index % 2 == 0
+			GardenArt.Tree(parent, Vector3.new(x,baseY,z), rng:NextNumber(12,18) + depth*2,
+				blossoms and Color3.fromRGB(247,163,202) or Color3.fromRGB(64,114,83), rng:NextInteger(1,1000000), blossoms)
 
 		elseif zone.DecorType == "Volcano" then
 			if rng:NextNumber() < 0.55 then

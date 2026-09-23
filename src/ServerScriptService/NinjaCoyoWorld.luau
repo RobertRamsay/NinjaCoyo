@@ -1,3 +1,4 @@
+local GardenArt = require(script.Parent:WaitForChild("NinjaCoyoGardenArt"))
 -- NinjaCoyoWorld (ModuleScript in ServerScriptService)
 -- Builds the Japanese landscape at startup: green rolling terrain, a mountain ring,
 -- a lake with a floating torii, a pagoda temple on a hill, stone paths,
@@ -31,7 +32,7 @@ local MOUNTAIN_RING_RADIUS = 420
 local MOUNTAIN_COUNT = 22
 local MOUND_COUNT = 30
 local SAKURA_COUNT = 24
-local PINE_COUNT = 14
+local BONSAI_COUNT = 14
 local BOULDER_COUNT = 14
 local LILY_PAD_COUNT = 14
 
@@ -40,7 +41,7 @@ local GRASS_GREEN = Color3.fromRGB(96, 156, 64)
 local LEAFY_GREEN = Color3.fromRGB(80, 140, 56)
 local SAKURA_PINK = Color3.fromRGB(255, 183, 206)
 local SAKURA_DEEP = Color3.fromRGB(245, 150, 185)
-local PINE_GREEN = Color3.fromRGB(46, 96, 56)
+local BONSAI_GREEN = Color3.fromRGB(46, 96, 56)
 local LILY_GREEN = Color3.fromRGB(70, 140, 60)
 local TRUNK_BROWN = Color3.fromRGB(92, 62, 46)
 local DOCK_BROWN = Color3.fromRGB(130, 96, 64)
@@ -133,6 +134,7 @@ local function isOnPath(x, z, margin)
 end
 
 local function isFreeSpot(x, z, clearance)
+	if not require(script.Parent:WaitForChild("NinjaCoyoScenery")).IsPickupClear(Vector3.new(x,0,z)) then return false end
 	if require(script.Parent:WaitForChild("NinjaCoyoProgression")).Reserved(Vector3.new(x, 0, z), clearance) then return false end
 	for _, hill in ipairs(Config.TreasureTerraces) do
 		if flatDistance(x, z, hill.Center) < hill.Radius * 1.6 + clearance then return false end
@@ -359,33 +361,11 @@ local function buildLantern(x, z)
 end
 
 local function buildSakura(x, z)
-	local y = groundHeightAt(x, z)
-	local trunkHeight = rng:NextNumber(6, 9)
-	makeColumn("Trunk", trunkHeight, 1.4, x, y, z, TRUNK_BROWN, Enum.Material.Wood, true)
-	local top = Vector3.new(x, y + trunkHeight, z)
-	for blossom = 1, 4 do
-		local radius = rng:NextNumber(3.5, 5.5)
-		local offset = Vector3.new(rng:NextNumber(-3, 3), rng:NextNumber(-0.5, 2), rng:NextNumber(-3, 3))
-		local colour = SAKURA_PINK
-		if rng:NextNumber() < 0.4 then
-			colour = SAKURA_DEEP
-		end
-		makePart("Blossom", Vector3.new(radius * 2, radius * 2, radius * 2), CFrame.new(top + offset), colour, Enum.Material.Grass, false, Enum.PartType.Ball)
-	end
+	GardenArt.Tree(decorFolder, Vector3.new(x, groundHeightAt(x,z), z), rng:NextNumber(14,22), SAKURA_PINK, rng:NextInteger(1,1000000), true)
 end
 
-local function buildPine(x, z)
-	local y = groundHeightAt(x, z)
-	local trunkHeight = rng:NextNumber(9, 13)
-	makeColumn("Trunk", trunkHeight, 1.3, x, y, z, TRUNK_BROWN, Enum.Material.Wood, true)
-	-- Cloud-like foliage pads
-	for pad = 1, 3 do
-		local padY = y + trunkHeight - (pad - 1) * 2.6
-		local diameter = 5 + pad * 1.6
-		local offsetX = rng:NextNumber(-1.5, 1.5)
-		local offsetZ = rng:NextNumber(-1.5, 1.5)
-		makeDisc("Foliage", 2, diameter, x + offsetX, padY, z + offsetZ, PINE_GREEN, Enum.Material.Grass, false)
-	end
+local function buildBonsai(x, z)
+	GardenArt.Tree(decorFolder, Vector3.new(x, groundHeightAt(x,z), z), rng:NextNumber(10,17), BONSAI_GREEN, rng:NextInteger(1,1000000), false)
 end
 
 local function buildLakeDecor()
@@ -441,10 +421,10 @@ local function buildTrees()
 			buildSakura(x, z)
 		end
 	end
-	for index = 1, PINE_COUNT do
+	for index = 1, BONSAI_COUNT do
 		local found, x, z = randomFreeSpot(60, 340, 6)
 		if found then
-			buildPine(x, z)
+			buildBonsai(x, z)
 		end
 	end
 end

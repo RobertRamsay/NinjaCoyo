@@ -380,7 +380,7 @@ Config.Zones = {
 		FenceColor = Color3.fromRGB(150, 100, 80),
 		DecorType = "Sakura",
 		DecorColor = Color3.fromRGB(255, 183, 206),
-		DecorCount = 22,
+		DecorCount = 12,
 	},
 	Snow = {
 		DisplayName = "Snowy Peak",
@@ -401,9 +401,9 @@ Config.Zones = {
 		FloorColor = Color3.fromRGB(235, 240, 248),
 		FloorMaterial = Enum.Material.Snow,
 		FenceColor = Color3.fromRGB(110, 90, 75),
-		DecorType = "SnowPine",
+		DecorType = "Bonsai",
 		DecorColor = Color3.fromRGB(46, 96, 64),
-		DecorCount = 28,
+		DecorCount = 12,
 	},
 	Volcano = {
 		DisplayName = "Oni Volcano",
@@ -426,7 +426,7 @@ Config.Zones = {
 		FenceColor = Color3.fromRGB(60, 45, 40),
 		DecorType = "Volcano",
 		DecorColor = Color3.fromRGB(255, 110, 30),
-		DecorCount = 26,
+		DecorCount = 18,
 	},
 	Spirit = {
 		DisplayName = "Spirit Realm",
@@ -449,7 +449,7 @@ Config.Zones = {
 		FenceColor = Color3.fromRGB(70, 50, 100),
 		DecorType = "Spirit",
 		DecorColor = Color3.fromRGB(170, 110, 255),
-		DecorCount = 30,
+		DecorCount = 18,
 	},
 }
 
