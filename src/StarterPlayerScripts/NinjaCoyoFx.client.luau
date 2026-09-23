@@ -329,6 +329,26 @@ end
 RunService.Stepped:Connect(updateSwings)
 RunService:BindToRenderStep("NinjaCoyoSwing", Enum.RenderPriority.Last.Value, updateSwings)
 
+local function faceNearestEnemy(character)
+	local root = character:FindFirstChild("HumanoidRootPart")
+	local humanoid = character:FindFirstChildOfClass("Humanoid")
+	local folder = workspace:FindFirstChild("Enemies")
+	if root == nil or humanoid == nil or humanoid.Health <= 0 or humanoid.Sit or folder == nil then return end
+	local nearest, distance = nil, Config.KatanaEnemyRange
+	for _, enemy in ipairs(folder:GetChildren()) do
+		local enemyRoot = enemy:FindFirstChild("HumanoidRootPart")
+		local enemyHumanoid = enemy:FindFirstChildOfClass("Humanoid")
+		if enemy:GetAttribute("OwnerUserId") == player.UserId and enemyRoot and enemyHumanoid and enemyHumanoid.Health > 0 then
+			local gap = (enemyRoot.Position - root.Position).Magnitude
+			if gap < distance then nearest, distance = enemyRoot, gap end
+		end
+	end
+	if nearest then
+		local target = Vector3.new(nearest.Position.X, root.Position.Y, nearest.Position.Z)
+		if (target - root.Position).Magnitude > 0.01 then root.CFrame = CFrame.lookAt(root.Position, target) end
+	end
+end
+
 local function hookKatana(child)
 	if child:IsA("Tool") == false then
 		return
@@ -349,6 +369,7 @@ local function hookKatana(child)
 		lastLocalSwing = now
 		local character = player.Character
 		if character ~= nil then
+			faceNearestEnemy(character)
 			playSwing(character)
 		end
 	end)

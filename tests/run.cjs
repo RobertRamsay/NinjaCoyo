@@ -29,8 +29,19 @@ const movement = fs.readFileSync(path.join(__dirname, 'movement-cases.luau'), 'u
 const swing = fs.readFileSync(path.join(__dirname, 'swing-cases.luau'), 'utf8')
  .replace('-- SWING_TUNING_INSERT', fx.slice(fx.indexOf('local SWING_WINDUP_TIME'), fx.indexOf('-- Effects tuning')))
  .replace('-- SWING_FUNCTIONS_INSERT', extract(fx, 'createSlashArc') + '\n' + extract(fx, 'playSwing'));
+function publicFunction(source, name) {
+ const start = source.indexOf('function ' + name + '(');
+ if (start < 0) throw Error('Missing function: ' + name);
+ return source.slice(start, source.indexOf('\nend', start) + 4);
+}
+const enemies = read('ServerScriptService/NinjaCoyoEnemies.luau');
+const combat = fs.readFileSync(path.join(__dirname, 'combat-cases.luau'), 'utf8')
+ .replace('-- OWNERSHIP_INSERT', extract(wardrobe, 'ownsPass') + '\n' + publicFunction(wardrobe, 'Wardrobe.OwnsGoldSword') + '\n' + extract(wardrobe, 'collectPassIds') + '\n' + extract(wardrobe, 'loadOwnedPasses'))
+ .replace('-- PURCHASE_INSERT', extract(wardrobe, 'onPassPurchased'))
+ .replace('-- ENEMIES_INSERT', ['Enemies.DamageEnemy', 'Enemies.HitInRange', 'Enemies.FindNearestEnemy'].map(n => publicFunction(enemies,n)).join('\n'))
+ .replace('-- SWING_INSERT', extract(server, 'onKatanaSwing'));
 const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'ninjacoyo-tests-'));
-for (const [name, content] of [['upgrades', upgrades], ['movement', movement], ['swing', swing]]) {
+for (const [name, content] of [['upgrades', upgrades], ['movement', movement], ['swing', swing], ['combat', combat]]) {
  const file = path.join(temp, name + '.luau');
  fs.writeFileSync(file, content);
  execFileSync(process.env.LUAU || 'luau', [file], { stdio: 'inherit' });

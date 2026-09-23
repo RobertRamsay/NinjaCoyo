@@ -293,6 +293,7 @@ local function spawnEnemy(player)
 	local healthFill = createHealthBar(head, enemyType, tier)
 
 	model:PivotTo(CFrame.new(spawnPosition + Vector3.new(0, 4 * enemyType.Scale, 0)))
+	model:SetAttribute("OwnerUserId", player.UserId)
 	model.Parent = enemiesFolder
 	enemyRoot:SetNetworkOwner(nil)
 
@@ -419,7 +420,7 @@ function Enemies.DamageEnemy(player, enemy, amount)
 	context.FxEvent:FireAllClients("EnemyHit", enemy.Root.Position, enemy.Model)
 end
 
-function Enemies.HitInRange(player, position, range, damage)
+function Enemies.HitInRange(player, position, range, damage, oneHit)
 	local list = enemiesByPlayer[player]
 	if list == nil then
 		return
@@ -427,7 +428,7 @@ function Enemies.HitInRange(player, position, range, damage)
 	for _, enemy in ipairs(table.clone(list)) do
 		if enemy.Dead == false then
 			if (enemy.Root.Position - position).Magnitude <= range then
-				Enemies.DamageEnemy(player, enemy, damage)
+				Enemies.DamageEnemy(player, enemy, oneHit and enemy.Humanoid.Health or damage)
 			end
 		end
 	end

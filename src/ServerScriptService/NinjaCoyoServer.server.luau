@@ -601,7 +601,7 @@ local function onKatanaSwing(player, tool)
 	if data == nil then
 		return
 	end
-	if data.Unlocks.Katana ~= true then
+	if data.Unlocks.Katana ~= true and not Wardrobe.OwnsGoldSword(player) then
 		return
 	end
 	local now = os.clock()
@@ -615,15 +615,23 @@ local function onKatanaSwing(player, tool)
 		return
 	end
 
-	-- Every client plays the horizontal slash (the swinger has already played it locally)
-	fxEvent:FireAllClients("Slash", character)
+	local humanoid = character:FindFirstChildOfClass("Humanoid")
+	if tool.Parent ~= character or humanoid == nil or humanoid.Health <= 0 then return end
 	local rootPart = character:FindFirstChild("HumanoidRootPart")
 	if rootPart == nil then
 		return
 	end
 
+	local enemy = Enemies.FindNearestEnemy(player, rootPart.Position, Config.KatanaEnemyRange)
+	if enemy ~= nil and not humanoid.Sit then
+		local target = Vector3.new(enemy.Root.Position.X, rootPart.Position.Y, enemy.Root.Position.Z)
+		if (target - rootPart.Position).Magnitude > 0.01 then
+			rootPart.CFrame = CFrame.lookAt(rootPart.Position, target)
+		end
+	end
+	fxEvent:FireAllClients("Slash", character)
 	local katanaDamage = Config.GetValue("KatanaPower", data.Upgrades.KatanaPower)
-	Enemies.HitInRange(player, rootPart.Position, Config.KatanaEnemyRange, katanaDamage)
+	Enemies.HitInRange(player, rootPart.Position, Config.KatanaEnemyRange, katanaDamage, Wardrobe.OwnsGoldSword(player))
 
 	for _, chestModel in ipairs(chestsFolder:GetChildren()) do
 		local base = chestModel.PrimaryPart
@@ -635,6 +643,21 @@ local function onKatanaSwing(player, tool)
 				end
 			end
 		end
+	end
+end
+
+local function styleKatana(player, tool)
+	local gold = Wardrobe.OwnsGoldSword(player)
+	tool:SetAttribute("GoldSword", gold)
+	tool.ToolTip = gold and "Super Gold Sword: one-hit defeat for enemies" or "Attack nearby enemies and chests"
+	local blade = tool:FindFirstChild("Blade")
+	if blade then
+		blade.Color = gold and GOLD or Color3.fromRGB(215, 225, 235)
+		blade.Material = gold and Enum.Material.Neon or Enum.Material.Metal
+		blade.Size = gold and Vector3.new(0.22, 4.6, 0.5) or Vector3.new(0.1, 4, 0.3)
+		local trail = blade:FindFirstChild("SlashTrail")
+		if trail then trail.Color = gold and ColorSequence.new(GOLD, Color3.fromRGB(255, 245, 185))
+			or ColorSequence.new(Color3.new(1, 1, 1), Color3.fromRGB(140, 220, 255)) end
 	end
 end
 
@@ -701,6 +724,7 @@ local function createKatanaTool(player)
 	trail.Enabled = false
 	trail.Parent = blade
 
+	styleKatana(player, tool)
 	tool.Activated:Connect(function()
 		onKatanaSwing(player, tool)
 	end)
@@ -723,6 +747,21 @@ local function giveKatana(player)
 	end
 	local tool = createKatanaTool(player)
 	tool.Parent = backpack
+end
+
+local function refreshGoldSword(player)
+	local data = playerData[player]
+	if player.Parent == nil or data == nil or not Wardrobe.OwnsGoldSword(player) then return end
+	-- The pass includes the base katana, even for a brand-new player.
+	data.Unlocks.Katana = true
+	sendDataToClient(player)
+	task.spawn(function()
+		giveKatana(player)
+		for _, container in ipairs({ player:FindFirstChild("Backpack"), player.Character }) do
+			local tool = container and container:FindFirstChild("Katana")
+			if tool then styleKatana(player, tool) end
+		end
+	end)
 end
 
 ----------------------------------------------------------------
@@ -1408,6 +1447,7 @@ local function onPlayerAdded(player)
 	end
 	playerData[player] = data
 	playerLoadedOk[player] = loadedOk
+	refreshGoldSword(player)
 
 	updateLeaderstats(player)
 	sendDataToClient(player)
@@ -1493,6 +1533,7 @@ World.Build()
 
 Wardrobe.Init({
 	PlayerData = playerData,
+	OnOwnershipReady = refreshGoldSword,
 	GetCoyoModels = function(player)
 		local models = {}
 		local pack = playerPets[player]

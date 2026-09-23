@@ -14,6 +14,7 @@ Config.SpawnRayHeight = 200
 Config.KatanaRange = 9
 Config.KatanaEnemyRange = 10
 Config.KatanaCooldown = 0.35
+Config.StartCameraDistance = 18
 
 -- Zone walls and gates (the gate is always on the zone's +Z side)
 Config.FenceHeight = 12
@@ -168,6 +169,7 @@ Config.Wardrobe = {
 	StudioOwnsEverything = true,
 	ShrinePosition = Vector3.new(-45, 0, 45),
 	DoubleCoinsPassId = 0,
+	GoldSwordPassId = 0, -- Permanent Super Gold Sword; create a Roblox pass and set its ID.
 
 	OutfitOrder = { "Default", "Crimson", "Shadow", "Jade", "Samurai" },
 	Outfits = {

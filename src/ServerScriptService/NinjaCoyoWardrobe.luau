@@ -77,6 +77,11 @@ local function ownsItem(player, item)
 	return ownsPass(player, item.PassId)
 end
 
+function Wardrobe.OwnsGoldSword(player)
+	-- Paid combat benefits never use the Studio cosmetics unlock override.
+	return ownsPass(player, WardrobeConfig.GoldSwordPassId)
+end
+
 local function collectPassIds()
 	local passIds = {}
 	for _, outfitId in ipairs(WardrobeConfig.OutfitOrder) do
@@ -94,6 +99,9 @@ local function collectPassIds()
 	if WardrobeConfig.DoubleCoinsPassId ~= 0 then
 		table.insert(passIds, WardrobeConfig.DoubleCoinsPassId)
 	end
+	if WardrobeConfig.GoldSwordPassId ~= 0 then
+		table.insert(passIds, WardrobeConfig.GoldSwordPassId)
+	end
 	return passIds
 end
 
@@ -103,6 +111,7 @@ local function loadOwnedPasses(player)
 			return MarketplaceService:UserOwnsGamePassAsync(player.UserId, passId)
 		end)
 		if success and owns == true then
+			if ownedPasses[player] == nil then return end
 			ownedPasses[player][passId] = true
 		end
 	end
@@ -131,6 +140,7 @@ local function buildState(player)
 		state.OwnedCoats[coatId] = ownsItem(player, WardrobeConfig.Coats[coatId])
 	end
 
+	state.GoldSword = ownsPass(player, WardrobeConfig.GoldSwordPassId)
 	state.DoubleCoins = false
 	if ownsPass(player, WardrobeConfig.DoubleCoinsPassId) then
 		state.DoubleCoins = true
@@ -545,7 +555,8 @@ local function onPassPurchased(player, passId, wasPurchased)
 	end
 	ownedPasses[player][passId] = true
 
-	local itemName = "Double Scroll-Coins"
+	local itemName = passId == WardrobeConfig.GoldSwordPassId and "Super Gold Sword" or "Double Scroll-Coins"
+	if context.OnOwnershipReady then context.OnOwnershipReady(player) end
 	for _, outfitId in ipairs(WardrobeConfig.OutfitOrder) do
 		local outfit = WardrobeConfig.Outfits[outfitId]
 		if outfit.PassId == passId then
@@ -576,6 +587,8 @@ function Wardrobe.Init(newContext)
 		ownedPasses[player] = {}
 		task.spawn(function()
 			loadOwnedPasses(player)
+			if player.Parent == nil then return end
+			if context.OnOwnershipReady then context.OnOwnershipReady(player) end
 			sendState(player)
 		end)
 	end)
@@ -583,6 +596,8 @@ function Wardrobe.Init(newContext)
 		ownedPasses[player] = {}
 		task.spawn(function()
 			loadOwnedPasses(player)
+			if player.Parent == nil then return end
+			if context.OnOwnershipReady then context.OnOwnershipReady(player) end
 			sendState(player)
 		end)
 	end

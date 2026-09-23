@@ -250,10 +250,13 @@ local compactHud = false
 local function layoutHud()
 	local size = screenGui.AbsoluteSize
 	compactHud = size.X < 900 or size.Y < 600
-	coinFrame.Size = UDim2.fromOffset(compactHud and 132 or 180, compactHud and 30 or 40)
-	coinFrame.Position = UDim2.new(0.5, 0, 0, 6)
-	goalFrame.Size = UDim2.fromOffset(compactHud and 210 or 260, compactHud and 20 or 24)
-	goalFrame.Position = UDim2.new(0.5, 0, 0, compactHud and 42 or 52)
+	-- One slim row at the top of Roblox's safe area leaves more gameplay visible.
+	local coinWidth, goalWidth = compactHud and 100 or 140, compactHud and 180 or 240
+	coinFrame.Size = UDim2.fromOffset(coinWidth, compactHud and 26 or 30)
+	coinFrame.Position = UDim2.new(0.5, -(goalWidth + 6) / 2, 0, 0)
+	goalFrame.Size = UDim2.fromOffset(goalWidth, compactHud and 22 or 26)
+	goalFrame.Position = UDim2.new(0.5, (coinWidth + 6) / 2, 0, 2)
+
 	dojoButton.AnchorPoint = Vector2.zero
 	dojoButton.Size = UDim2.fromOffset(80, 44)
 	dojoButton.Position = UDim2.fromOffset(8, 76)
@@ -562,7 +565,7 @@ coinCollectedEvent.OnClientEvent:Connect(function(amount)
 
 	local popup = makeLabel(screenGui, "+" .. formatNumber(amount), COLOUR_GOLD)
 	popup.AnchorPoint = Vector2.new(0.5, 0)
-	popup.Position = UDim2.new(0.5, rng:NextInteger(-45, 45), 0, compactHud and 64 or 82)
+	popup.Position = UDim2.new(0.5, rng:NextInteger(-45, 45), 0, compactHud and 32 or 38)
 	popup.Size = UDim2.fromOffset(64, compactHud and 18 or 24)
 	popup.TextStrokeTransparency = 0.2
 
