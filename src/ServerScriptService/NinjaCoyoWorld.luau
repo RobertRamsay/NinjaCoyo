@@ -133,6 +133,12 @@ local function isOnPath(x, z, margin)
 end
 
 local function isFreeSpot(x, z, clearance)
+	for _, hill in ipairs(Config.TreasureTerraces) do
+		if flatDistance(x, z, hill.Center) < hill.Radius * 1.6 + clearance then return false end
+	end
+	for _, building in ipairs({ Config.Wardrobe.ShrinePosition, Vector3.new(-115, 0, 175), Vector3.new(205, 0, 110) }) do
+		if flatDistance(x, z, building) < 18 + clearance then return false end
+	end
 	if flatDistance(x, z, Vector3.zero) < SPAWN_CLEAR_RADIUS + clearance then
 		return false
 	end
@@ -472,6 +478,7 @@ function World.Build()
 	decorFolder.Parent = workspace
 
 	buildTerrain()
+	require(script.Parent:WaitForChild("NinjaCoyoScenery")).Build()
 
 	-- The terrain replaces the grey baseplate while the game runs
 	local baseplate = workspace:FindFirstChild("Baseplate")

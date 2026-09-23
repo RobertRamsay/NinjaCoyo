@@ -9,6 +9,7 @@ local CollectionService = game:GetService("CollectionService")
 local Config = require(ReplicatedStorage:WaitForChild("NinjaCoyoConfig"))
 local Enemies = require(script.Parent:WaitForChild("NinjaCoyoEnemies"))
 local Wardrobe = require(script.Parent:WaitForChild("NinjaCoyoWardrobe"))
+local Scenery = require(script.Parent:WaitForChild("NinjaCoyoScenery"))
 
 local dataStore = nil
 local dataStoreOk, dataStoreResult = pcall(function()
@@ -120,6 +121,7 @@ local function createDefaultData()
 	data.EnemyTier = 1
 	data.Outfit = "Default"
 	data.CoyoCoat = "Coyote"
+	data.DogCoats = {}
 	return data
 end
 
@@ -155,6 +157,14 @@ local function loadData(player)
 		end
 		if type(stored.CoyoCoat) == "string" and Config.Wardrobe.Coats[stored.CoyoCoat] ~= nil then
 			data.CoyoCoat = stored.CoyoCoat
+		end
+		if type(stored.DogCoats) == "table" then
+			for index = 1, #Config.CoyoPackNames do
+				local coatId = stored.DogCoats[tostring(index)]
+				if type(coatId) == "string" and Config.Wardrobe.Coats[coatId] ~= nil then
+					data.DogCoats[tostring(index)] = coatId
+				end
+			end
 		end
 		if type(stored.EnemyTier) == "number" then
 			data.EnemyTier = math.max(1, math.floor(stored.EnemyTier))
@@ -220,6 +230,8 @@ local function applyCharacterStats(player)
 	humanoid.WalkSpeed = Config.GetValue("NinjaSpeed", data.Upgrades.NinjaSpeed)
 	humanoid.UseJumpPower = true
 	humanoid.JumpPower = Config.GetValue("NinjaJump", data.Upgrades.NinjaJump)
+	character:SetAttribute("JumpLevel", data.Upgrades.NinjaJump)
+	character:SetAttribute("KatanaLevel", data.Upgrades.KatanaPower)
 
 	local newMaxHealth = Config.GetValue("NinjaHealth", data.Upgrades.NinjaHealth)
 	local healthGain = newMaxHealth - humanoid.MaxHealth
@@ -302,10 +314,20 @@ local function onCoinTouched(coinModel, hit)
 	collectCoin(coinModel, player)
 end
 
-local function getRandomGroundInZone(zone)
+local spawnCell = {}
+local function getRandomGroundInZone(zone, terrace)
 	local half = zone.Size / 2 - zone.SpawnMargin
-	local x = zone.Center.X + rng:NextNumber(-half, half)
-	local z = zone.Center.Z + rng:NextNumber(-half, half)
+	local low = zone.SpawnMin or Vector2.new(zone.Center.X - half, zone.Center.Z - half)
+	local high = zone.SpawnMax or Vector2.new(zone.Center.X + half, zone.Center.Z + half)
+	-- Cycle a 4 x 3 grid rather than allowing random clusters near the centre.
+	local cell = spawnCell[zone] or 0
+	spawnCell[zone] = (cell + 1) % 12
+	local x = low.X + ((cell % 4) + rng:NextNumber(0.1, 0.9)) * (high.X - low.X) / 4
+	local z = low.Y + (math.floor(cell / 4) + rng:NextNumber(0.1, 0.9)) * (high.Y - low.Y) / 3
+	if terrace then
+		x = terrace.Center.X + rng:NextNumber(-terrace.Radius * 0.5, terrace.Radius * 0.5)
+		z = terrace.Center.Z + rng:NextNumber(-terrace.Radius * 0.5, terrace.Radius * 0.5)
+	end
 	local origin = Vector3.new(x, zone.Center.Y + Config.SpawnRayHeight, z)
 	local result = workspace:Raycast(origin, Vector3.new(0, -Config.SpawnRayHeight * 2, 0), rayParams)
 	if result == nil then
@@ -313,6 +335,12 @@ local function getRandomGroundInZone(zone)
 	end
 	if result.Material == Enum.Material.Water then
 		return nil
+	end
+	if result.Normal.Y < 0.85 or not Scenery.IsPickupClear(result.Position) then
+		return nil
+	end
+	for _, chest in ipairs(chestsFolder:GetChildren()) do
+		if chest.PrimaryPart and (chest.PrimaryPart.Position - result.Position).Magnitude < 7 then return nil end
 	end
 	return result.Position
 end
@@ -383,7 +411,22 @@ end
 
 local function spawnChest(zoneId)
 	local zone = Config.Zones[zoneId]
-	local ground = getRandomGroundInZone(zone)
+	local terrace = nil
+	-- Fill each summit before ordinary chests so elevated treasure is always present.
+	for _, hill in ipairs(Config.TreasureTerraces) do
+		if hill.Zone == zoneId then
+			local occupied = false
+			for _, chest in ipairs(chestsFolder:GetChildren()) do
+				local p = chest.PrimaryPart
+				if p and Vector2.new(p.Position.X - hill.Center.X, p.Position.Z - hill.Center.Z).Magnitude < hill.Radius then
+					occupied = true
+					break
+				end
+			end
+			if not occupied then terrace = hill; break end
+		end
+	end
+	local ground = getRandomGroundInZone(zone, terrace)
 	if ground == nil then
 		return false
 	end
@@ -761,7 +804,11 @@ local function randomDecorSpot(zone)
 	for attempt = 1, 20 do
 		local x = zone.Center.X + rng:NextNumber(-half + 5, half - 5)
 		local z = zone.Center.Z + rng:NextNumber(-half + 12, half - 12)
-		if math.abs(x - zone.Center.X) > 10 then
+		local clear = Scenery.IsPickupClear(Vector3.new(x, 0, z))
+		for _, hill in ipairs(Config.TreasureTerraces) do
+			if Vector2.new(x - hill.Center.X, z - hill.Center.Z).Magnitude < hill.Radius * 1.7 then clear = false end
+		end
+		if clear and math.abs(x - zone.Center.X) > 10 then
 			return x, z
 		end
 	end
@@ -1006,6 +1053,7 @@ local function createCoyoDog(player, rootPart, index)
 
 	local model = Instance.new("Model")
 	model.Name = player.Name .. "_" .. dogName
+	model:SetAttribute("PackIndex", index)
 
 	local body = Instance.new("Part")
 	body.Name = "Body"
@@ -1098,15 +1146,15 @@ local function createCoyoDog(player, rootPart, index)
 end
 
 local function createCoyo(player, character)
-	removeCoyo(player)
-
 	local rootPart = character:WaitForChild("HumanoidRootPart", 10)
 	if rootPart == nil then
 		return
 	end
-	if character.Parent == nil then
+	if character.Parent == nil or player.Character ~= character or player.Parent == nil then
 		return
 	end
+	-- Rebuild after the only yielding call, so overlapping requests cannot leave duplicates.
+	removeCoyo(player)
 
 	local packSize = 1
 	local data = playerData[player]
@@ -1384,7 +1432,13 @@ buyUpgradeFunction.OnServerInvoke = function(player, upgradeId)
 		task.spawn(function()
 			createCoyo(player, player.Character)
 			Wardrobe.ApplyCoat(player)
+			Wardrobe.Refresh(player)
+			local count = Config.GetValue("PackSize", data.Upgrades.PackSize)
+			notifyEvent:FireClient(player, Config.CoyoPackNames[count] .. " JOINS YOUR PACK!",
+				"Choose each dog's look in the Dressing House", true)
 		end)
+	else
+		Wardrobe.Refresh(player)
 	end
 	return true, "Upgraded!"
 end

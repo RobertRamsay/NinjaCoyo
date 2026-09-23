@@ -36,6 +36,10 @@ local COLOUR_ERROR = Color3.fromRGB(200, 60, 60)
 local currentState = {}
 currentState.Outfit = "Default"
 currentState.Coat = "Coyote"
+currentState.DogCoats = {}
+currentState.PackSize = 1
+local selectedDog = 1
+local dogButtons = {}
 currentState.OwnedOutfits = {}
 currentState.OwnedCoats = {}
 currentState.DoubleCoins = false
@@ -130,7 +134,7 @@ panelLimit.Parent = panel
 local panelScale = Instance.new("UIScale")
 panelScale.Parent = panel
 
-local title = makeLabel(panel, "Wardrobe Shrine", COLOUR_GOLD)
+local title = makeLabel(panel, "Dressing House", COLOUR_GOLD)
 title.Position = UDim2.new(0, 16, 0, 10)
 title.Size = UDim2.new(1, -80, 0, 40)
 title.TextXAlignment = Enum.TextXAlignment.Left
@@ -166,7 +170,7 @@ local function createPage(pageName)
 	page.Parent = panel
 
 	local grid = Instance.new("UIGridLayout")
-	grid.CellSize = UDim2.new(0, 180, 0, 200)
+	grid.CellSize = UDim2.new(0, 180, 0, 224)
 	grid.CellPadding = UDim2.new(0, 10, 0, 10)
 	grid.SortOrder = Enum.SortOrder.LayoutOrder
 	grid.Parent = page
@@ -176,6 +180,7 @@ local function createPage(pageName)
 end
 
 local function showTab(pageName)
+	for _, button in ipairs(dogButtons) do button.Visible = pageName == "Coyo" end
 	for name, page in pairs(tabPages) do
 		page.Visible = name == pageName
 		local tabButton = tabButtons[name]
@@ -190,7 +195,7 @@ end
 local function createTabButton(pageName, label, order)
 	local tabButton = makeButton(tabRow, label, COLOUR_TAB)
 	tabButton.LayoutOrder = order
-	tabButton.Size = UDim2.new(0, 120, 1, 0)
+		tabButton.Size = UDim2.new(1 / 3, -6, 1, 0)
 	tabButton.Activated:Connect(function()
 		Sounds.Play("Click", 1, 1)
 		showTab(pageName)
@@ -203,6 +208,13 @@ end
 ----------------------------------------------------------------
 
 local function refreshCards()
+	selectedDog = math.min(selectedDog, currentState.PackSize or 1)
+	for index, button in ipairs(dogButtons) do
+		local unlocked = index <= (currentState.PackSize or 1)
+		button.Text = Config.CoyoPackNames[index] .. (unlocked and "" or " (locked)")
+		button.BackgroundColor3 = index == selectedDog and COLOUR_PURPLE or COLOUR_TAB
+		button.AutoButtonColor = unlocked
+	end
 	for _, card in pairs(cards) do
 		local owned = false
 		local equipped = false
@@ -211,7 +223,7 @@ local function refreshCards()
 			equipped = currentState.Outfit == card.ItemId
 		elseif card.Kind == "Coat" then
 			owned = currentState.OwnedCoats[card.ItemId] == true
-			equipped = currentState.Coat == card.ItemId
+			equipped = ((currentState.DogCoats or {})[tostring(selectedDog)] or currentState.Coat) == card.ItemId
 		elseif card.Kind == "Boost" then
 			owned = currentState.DoubleCoins == true
 			equipped = owned
@@ -237,7 +249,7 @@ local function refreshCards()
 			end
 		else
 			card.Button.BackgroundColor3 = COLOUR_SOON
-			card.Button.Text = "SOON"
+			card.Button.Text = card.UnlockText or "SOON"
 		end
 	end
 end
@@ -271,7 +283,7 @@ local function onCardClicked(card)
 		end
 		isBusy = true
 		local callOk, success, message = pcall(function()
-			return equipFunction:InvokeServer(card.Kind, card.ItemId)
+			return equipFunction:InvokeServer(card.Kind, card.ItemId, selectedDog)
 		end)
 		isBusy = false
 		if callOk == false or success ~= true then
@@ -295,7 +307,7 @@ local function createCard(page, kind, itemId, displayName, passId, swatchColours
 	cardFrame.Parent = page
 	addCorner(cardFrame, 12)
 
-	-- Colour preview: one stripe per colour in the item
+	-- Small 3D mannequins make the clothes and dog colours easier to recognise.
 	local swatch = Instance.new("Frame")
 	swatch.Position = UDim2.new(0, 10, 0, 10)
 	swatch.Size = UDim2.new(1, -20, 0, 90)
@@ -304,14 +316,50 @@ local function createCard(page, kind, itemId, displayName, passId, swatchColours
 	swatch.Parent = cardFrame
 	addCorner(swatch, 10)
 
-	local stripeWidth = 1 / #swatchColours
-	for index, colour in ipairs(swatchColours) do
-		local stripe = Instance.new("Frame")
-		stripe.Position = UDim2.new(stripeWidth * (index - 1), 0, 0, 0)
-		stripe.Size = UDim2.new(stripeWidth, 1, 1, 0)
-		stripe.BackgroundColor3 = colour
-		stripe.BorderSizePixel = 0
-		stripe.Parent = swatch
+	local preview = Instance.new("ViewportFrame")
+	preview.Size, preview.BackgroundTransparency = UDim2.fromScale(1, 1), 1
+	preview.Ambient, preview.LightColor = Color3.fromRGB(180, 180, 190), Color3.new(1, 1, 1)
+	preview.Parent = swatch
+	local camera = Instance.new("Camera")
+	camera.CFrame = CFrame.lookAt(Vector3.new(5, 3, -7), Vector3.new(0, 0.3, 0))
+	camera.FieldOfView, camera.Parent, preview.CurrentCamera = 40, preview, camera
+	local function previewPart(size, position, colour, material)
+		local p = Instance.new("Part")
+		p.Size, p.Position, p.Color, p.Material = size, position, colour, material or Enum.Material.Fabric
+		p.Anchored, p.Parent = true, preview
+		return p
+	end
+	if kind == "Coat" then
+		previewPart(Vector3.new(1.3, 1.1, 2.4), Vector3.zero, swatchColours[1])
+		previewPart(Vector3.new(1.1, 1, 1), Vector3.new(0, 0.6, -1.4), swatchColours[1])
+		previewPart(Vector3.new(0.7, 0.5, 0.7), Vector3.new(0, 0.3, -2), swatchColours[3])
+		previewPart(Vector3.new(0.25, 0.2, 0.15), Vector3.new(0, 0.45, -2.4), Color3.new(0.05, 0.05, 0.05))
+		for _, side in ipairs({ -1, 1 }) do
+			previewPart(Vector3.new(0.3, 0.7, 0.3), Vector3.new(side * 0.4, 1.3, -1.3), swatchColours[2])
+			for _, z in ipairs({ -0.8, 0.8 }) do
+				previewPart(Vector3.new(0.3, 0.8, 0.3), Vector3.new(side * 0.4, -0.8, z), swatchColours[1])
+			end
+		end
+		local shape = WardrobeConfig.Coats[itemId].Shape
+		local tail = previewPart(shape == "Shiba" and Vector3.new(0.8, 0.8, 0.8) or Vector3.new(0.6, 0.6, 1.5), Vector3.new(0, 0.5, 1.5), swatchColours[2])
+		tail.Shape = Enum.PartType.Ball
+		if shape == "Wolf" then
+			previewPart(Vector3.new(1.6, 0.6, 0.7), Vector3.new(0, 0.3, -1.1), swatchColours[3])
+		end
+	elseif kind == "Outfit" then
+		previewPart(Vector3.new(1.7, 1.8, 0.9), Vector3.zero, swatchColours[1])
+		previewPart(Vector3.new(1, 1, 1), Vector3.new(0, 1.4, 0), Color3.fromRGB(221, 187, 150))
+		previewPart(Vector3.new(1.05, 0.3, 1.05), Vector3.new(0, 1.65, 0), swatchColours[2])
+		previewPart(Vector3.new(1.75, 0.25, 1), Vector3.new(0, -0.65, 0), swatchColours[3])
+		for _, side in ipairs({ -1, 1 }) do
+			previewPart(Vector3.new(0.55, 1.6, 0.7), Vector3.new(side * 1.15, 0, 0), swatchColours[1])
+			previewPart(Vector3.new(0.65, 1.5, 0.7), Vector3.new(side * 0.5, -1.5, 0), swatchColours[1])
+			previewPart(Vector3.new(0.45, 0.5, 0.25), Vector3.new(side * 0.5, -0.1, -0.58), swatchColours[2])
+			previewPart(Vector3.new(0.55, 0.1, 0.3), Vector3.new(side * 0.5, 0.15, -0.58), swatchColours[3])
+		end
+	else
+		local coin = previewPart(Vector3.new(0.3, 3, 3), Vector3.zero, COLOUR_GOLD, Enum.Material.Metal)
+		coin.Shape = Enum.PartType.Cylinder
 	end
 
 	local nameLabel = makeLabel(cardFrame, displayName, COLOUR_WHITE)
@@ -327,6 +375,13 @@ local function createCard(page, kind, itemId, displayName, passId, swatchColours
 	card.ItemId = itemId
 	card.PassId = passId
 	card.Button = button
+	local info = kind == "Coat" and WardrobeConfig.Coats[itemId] or kind == "Outfit" and WardrobeConfig.Outfits[itemId]
+	if info and info.RequiredUpgrade then
+		card.UnlockText = Config.Upgrades[info.RequiredUpgrade].DisplayName .. " Lv " .. info.RequiredLevel
+	end
+	local detail = makeLabel(cardFrame, card.UnlockText or (kind == "Coat" and "Choose for the selected dog" or kind == "Outfit" and "Fabric layers & utility gear" or ""), COLOUR_GOLD)
+	detail.Position = UDim2.new(0, 10, 0, 139)
+	detail.Size = UDim2.new(1, -20, 0, 25)
 	cards[kind .. ":" .. itemId] = card
 
 	button.Activated:Connect(function()
@@ -337,8 +392,23 @@ end
 local ninjaPage = createPage("Ninja")
 local coyoPage = createPage("Coyo")
 local boostPage = createPage("Boosts")
+coyoPage.Position = UDim2.new(0, 12, 0, 146)
+coyoPage.Size = UDim2.new(1, -24, 1, -158)
+for index, name in ipairs(Config.CoyoPackNames) do
+	local button = makeButton(panel, name, COLOUR_TAB)
+	button.Position = UDim2.new((index - 1) / 4, 12, 0, 105)
+	button.Size = UDim2.new(0.25, -16, 0, 32)
+	button.Visible = false
+	button.Activated:Connect(function()
+		if index <= (currentState.PackSize or 1) then
+			selectedDog = index
+			refreshCards()
+		end
+	end)
+	dogButtons[index] = button
+end
 createTabButton("Ninja", "NINJA", 1)
-createTabButton("Coyo", "COYO", 2)
+createTabButton("Coyo", "DOG PACK", 2)
 createTabButton("Boosts", "BOOSTS", 3)
 
 for index, outfitId in ipairs(WardrobeConfig.OutfitOrder) do

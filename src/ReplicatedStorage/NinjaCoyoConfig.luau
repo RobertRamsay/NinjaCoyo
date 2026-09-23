@@ -43,6 +43,25 @@ Config.CoyoChestRange = 20
 
 -- Ninja
 Config.DoubleJumpDelay = 0.15
+Config.FlipJumpLevel = 3
+Config.TripleJumpLevel = 7
+
+-- Upload assets/sounds/NinjaCoyo_wind.wav and NinjaCoyo_chimes.wav, then set IDs.
+Config.Ambience = {
+	WindId = "",
+	ChimesId = "",
+	WindVolume = 0.18,
+	ChimesVolume = 0.25,
+}
+
+-- Flat-topped grassy treasure hills, clear of spawn, paths, lake and gates.
+Config.TreasureTerraces = {
+	{ Zone = "Meadow", Center = Vector3.new(-105, 0, 95), Height = 9, Radius = 16 },
+	{ Zone = "Meadow", Center = Vector3.new(90, 0, 115), Height = 16, Radius = 15 },
+	{ Zone = "Meadow", Center = Vector3.new(-205, 0, 115), Height = 23, Radius = 14 },
+	{ Zone = "Bamboo", Center = Vector3.new(-48, 0, -245), Height = 12, Radius = 12 },
+	{ Zone = "Sakura", Center = Vector3.new(46, 0, -435), Height = 18, Radius = 12 },
+}
 
 -- Enemies
 Config.EnemiesRequireUnlock = "Katana"
@@ -164,13 +183,14 @@ Config.Wardrobe = {
 		Crimson = {
 			DisplayName = "Crimson Ninja",
 			PassId = 0,
-			Free = false,
+			Free = true,
 			BodyColor = Color3.fromRGB(150, 22, 32),
 			AccentColor = Color3.fromRGB(20, 20, 22),
 			SashColor = Color3.fromRGB(240, 190, 50),
 			Armour = false,
 		},
 		Shadow = {
+			RequiredUpgrade = "NinjaJump", RequiredLevel = 3,
 			DisplayName = "Shadow Ninja",
 			PassId = 0,
 			Free = false,
@@ -180,6 +200,7 @@ Config.Wardrobe = {
 			Armour = false,
 		},
 		Jade = {
+			RequiredUpgrade = "NinjaHealth", RequiredLevel = 3,
 			DisplayName = "Jade Ninja",
 			PassId = 0,
 			Free = false,
@@ -189,6 +210,7 @@ Config.Wardrobe = {
 			Armour = false,
 		},
 		Samurai = {
+			RequiredUpgrade = "KatanaPower", RequiredLevel = 10,
 			DisplayName = "Golden Samurai",
 			PassId = 0,
 			Free = false,
@@ -199,8 +221,13 @@ Config.Wardrobe = {
 		},
 	},
 
-	CoatOrder = { "Coyote", "Snow", "ShadowFox", "FireFox", "Spirit" },
+	CoatOrder = { "Coyote", "Shiba", "Snow", "ShadowFox", "FireFox", "Spirit" },
 	Coats = {
+		Shiba = {
+			DisplayName = "Amber Shiba", PassId = 0, Free = true, Shape = "Shiba",
+			FurColor = Color3.fromRGB(205, 139, 65), DarkColor = Color3.fromRGB(139, 80, 40),
+			LightColor = Color3.fromRGB(255, 233, 198), Material = Enum.Material.Fabric, Effect = "",
+		},
 		Coyote = {
 			DisplayName = "Coyote",
 			PassId = 0,
@@ -212,6 +239,7 @@ Config.Wardrobe = {
 			Effect = "",
 		},
 		Snow = {
+			Shape = "Wolf", RequiredUpgrade = "PackSize", RequiredLevel = 1,
 			DisplayName = "Snow Wolf",
 			PassId = 0,
 			Free = false,
@@ -222,6 +250,7 @@ Config.Wardrobe = {
 			Effect = "Snow",
 		},
 		ShadowFox = {
+			Shape = "Fox", RequiredUpgrade = "NinjaJump", RequiredLevel = 3,
 			DisplayName = "Shadow Fox",
 			PassId = 0,
 			Free = false,
@@ -232,6 +261,7 @@ Config.Wardrobe = {
 			Effect = "Shadow",
 		},
 		FireFox = {
+			Shape = "Fox", RequiredUpgrade = "CoyoBite", RequiredLevel = 5,
 			DisplayName = "Fire Fox",
 			PassId = 0,
 			Free = false,
@@ -242,6 +272,7 @@ Config.Wardrobe = {
 			Effect = "Embers",
 		},
 		Spirit = {
+			Shape = "Wolf", RequiredUpgrade = "PackSize", RequiredLevel = 3,
 			DisplayName = "Spirit Wolf",
 			PassId = 0,
 			Free = false,
@@ -281,13 +312,15 @@ Config.Zones = {
 		DisplayName = "Dojo Meadow",
 		Center = Vector3.new(0, 0, 0),
 		Size = 200,
+		SpawnMin = Vector2.new(-245, -110),
+		SpawnMax = Vector2.new(245, 235),
 		SpawnMargin = 4,
 		CoinValue = 1,
 		ChestValueMin = 5,
 		ChestValueMax = 20,
 		ChestHits = 3,
-		MaxCoins = 60,
-		MaxChests = 6,
+		MaxCoins = 100,
+		MaxChests = 10,
 		EnemyMinLevel = 1,
 		EnemyMaxLevel = 5,
 		EnemyReward = 12,
@@ -485,7 +518,7 @@ Config.Upgrades = {
 	},
 	NinjaJump = {
 		DisplayName = "Ninja Jump",
-		Description = "Jump higher",
+		Description = "Higher jumps; flip Lv 3, triple jump Lv 7",
 		Category = "Ninja",
 		MaxLevel = 10,
 		BaseCost = 15,
@@ -509,7 +542,7 @@ Config.Upgrades = {
 	},
 	KatanaPower = {
 		DisplayName = "Katana Power",
-		Description = "Katana damage",
+		Description = "More damage and wider sweeps; 360 at Lv 10",
 		Category = "Ninja",
 		MaxLevel = 30,
 		BaseCost = 100,

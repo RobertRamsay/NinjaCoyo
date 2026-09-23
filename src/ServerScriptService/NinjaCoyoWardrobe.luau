@@ -66,6 +66,11 @@ local function ownsItem(player, item)
 	if item.Free == true then
 		return true
 	end
+	local data = context.PlayerData[player]
+	if item.RequiredUpgrade ~= nil and data ~= nil
+		and (data.Upgrades[item.RequiredUpgrade] or 0) >= item.RequiredLevel then
+		return true
+	end
 	if isStudio and WardrobeConfig.StudioOwnsEverything == true then
 		return true
 	end
@@ -108,9 +113,13 @@ local function buildState(player)
 	local state = {}
 	state.Outfit = "Default"
 	state.Coat = "Coyote"
+	state.DogCoats = {}
+	state.PackSize = 1
 	if data ~= nil then
 		state.Outfit = data.Outfit
 		state.Coat = data.CoyoCoat
+		state.DogCoats = table.clone(data.DogCoats)
+		state.PackSize = Config.GetValue("PackSize", data.Upgrades.PackSize)
 	end
 
 	state.OwnedOutfits = {}
@@ -188,6 +197,51 @@ local function addOutfitParts(character, outfit)
 	end
 
 	local lowerTorso = character:FindFirstChild("LowerTorso")
+	-- Cloth weave plus fitted layers, stitched lapels, utility pockets and limb pads.
+	local torso = character:FindFirstChild("UpperTorso") or character:FindFirstChild("Torso")
+	if torso then
+		local s = torso.Size
+		attachPart(folder, torso, "WovenJacket", Vector3.new(s.X * 1.025, s.Y * 0.94, s.Z * 1.04),
+			outfit.BodyColor, Enum.Material.Fabric, CFrame.new())
+		for _, side in ipairs({ -1, 1 }) do
+			attachPart(folder, torso, "FoldedLapel", Vector3.new(s.X * 0.13, s.Y * 0.92, 0.12),
+				outfit.AccentColor, Enum.Material.Fabric, CFrame.new(side * s.X * 0.15, 0.08, -s.Z * 0.56) * CFrame.Angles(0, 0, side * -0.28))
+			local x = side * s.X * 0.32
+			attachPart(folder, torso, "ChestPocket", Vector3.new(s.X * 0.24, s.Y * 0.28, 0.22),
+				outfit.BodyColor:Lerp(outfit.AccentColor, 0.25), Enum.Material.Fabric, CFrame.new(x, -s.Y * 0.15, -s.Z * 0.59))
+			attachPart(folder, torso, "PocketFlap", Vector3.new(s.X * 0.26, 0.12, 0.27),
+				outfit.AccentColor, Enum.Material.Fabric, CFrame.new(x, -s.Y * 0.02, -s.Z * 0.61))
+			attachPart(folder, torso, "PocketClasp", Vector3.new(0.08, 0.1, 0.05),
+				outfit.SashColor, Enum.Material.Metal, CFrame.new(x, -s.Y * 0.1, -s.Z * 0.61 - 0.16))
+			for stitch = 1, 5 do
+				attachPart(folder, torso, "Stitch", Vector3.new(0.035, 0.055, 0.025), outfit.SashColor,
+					Enum.Material.Fabric, CFrame.new(x - s.X * 0.1 + stitch * s.X * 0.033, -s.Y * 0.29, -s.Z * 0.59 - 0.12))
+			end
+		end
+	end
+	for _, side in ipairs({ "Left", "Right" }) do
+		local thigh = character:FindFirstChild(side .. "UpperLeg")
+		if thigh then
+			local sign = side == "Left" and -1 or 1
+			local s = thigh.Size
+			attachPart(folder, thigh, "CargoPocket", Vector3.new(0.3, s.Y * 0.45, s.Z * 0.75),
+				outfit.AccentColor, Enum.Material.Fabric, CFrame.new(sign * (s.X * 0.5 + 0.1), 0, 0))
+			attachPart(folder, thigh, "CargoFlap", Vector3.new(0.36, 0.14, s.Z * 0.83),
+				outfit.SashColor, Enum.Material.Fabric, CFrame.new(sign * (s.X * 0.5 + 0.1), s.Y * 0.22, 0))
+		end
+		for _, limbName in ipairs({ side .. "LowerArm", side .. "LowerLeg" }) do
+			local limb = character:FindFirstChild(limbName)
+			if limb then
+				local s = limb.Size
+				attachPart(folder, limb, "PaddedGuard", Vector3.new(s.X * 1.05, s.Y * 0.58, 0.16),
+					outfit.AccentColor, Enum.Material.Fabric, CFrame.new(0, 0, -s.Z * 0.53))
+				for _, y in ipairs({ -0.24, 0.24 }) do
+					attachPart(folder, limb, "Wrap", Vector3.new(s.X * 1.08, 0.1, s.Z * 1.08),
+						outfit.SashColor, Enum.Material.Fabric, CFrame.new(0, s.Y * y, 0))
+				end
+			end
+		end
+	end
 	if lowerTorso ~= nil then
 		local torsoSize = lowerTorso.Size
 		attachPart(folder, lowerTorso, "Sash", Vector3.new(torsoSize.X * 1.08, torsoSize.Y * 0.35, torsoSize.Z * 1.12), outfit.SashColor, Enum.Material.Fabric, CFrame.new(0, torsoSize.Y * 0.2, 0))
@@ -337,6 +391,8 @@ local function makeCoatEffect(body, effect)
 end
 
 local function applyCoatToModel(model, coat)
+	local oldDetails = model:FindFirstChild("BreedDetails")
+	if oldDetails then oldDetails:Destroy() end
 	for _, part in ipairs(model:GetChildren()) do
 		if part:IsA("BasePart") then
 			local role = COAT_ROLES[part.Name]
@@ -357,6 +413,29 @@ local function applyCoatToModel(model, coat)
 	if body == nil then
 		return
 	end
+	local details = Instance.new("Folder")
+	details.Name = "BreedDetails"
+	details.Parent = model
+	if coat.Shape == "Wolf" then
+		for _, side in ipairs({ -1, 1 }) do
+			local ruff = attachPart(details, body, "CheekRuff", Vector3.new(0.7, 0.85, 0.9), coat.LightColor,
+				Enum.Material.Fabric, CFrame.new(side * 0.65, 0.45, -1.25) * CFrame.Angles(0, 0, side * 0.3))
+			ruff.Shape = Enum.PartType.Ball
+		end
+	elseif coat.Shape == "Shiba" then
+		local curl = attachPart(details, body, "CurledTail", Vector3.new(0.85, 0.85, 1), coat.FurColor,
+			Enum.Material.Fabric, CFrame.new(0, 1, 1.45))
+		curl.Shape = Enum.PartType.Ball
+	elseif coat.Shape == "Fox" then
+		local tail = attachPart(details, body, "BrushTail", Vector3.new(0.8, 0.8, 2), coat.FurColor,
+			Enum.Material.Fabric, CFrame.new(0, 0.65, 2) * CFrame.Angles(-0.4, 0, 0))
+		tail.Shape = Enum.PartType.Ball
+		local tip = attachPart(details, body, "TailTip", Vector3.new(0.65, 0.65, 0.65), coat.LightColor,
+			Enum.Material.Fabric, CFrame.new(0, 1, 2.8))
+		tip.Shape = Enum.PartType.Ball
+	end
+	local tail = model:FindFirstChild("Tail")
+	if tail then tail.Transparency = (coat.Shape == "Shiba" or coat.Shape == "Fox") and 1 or 0 end
 	local oldEffect = body:FindFirstChild(COAT_EFFECT_NAME)
 	if oldEffect ~= nil then
 		oldEffect:Destroy()
@@ -366,18 +445,16 @@ local function applyCoatToModel(model, coat)
 	end
 end
 
--- Every dog in the pack wears the chosen coat
+-- Saved choices belong to individual pack slots; legacy saves keep their old coat.
 local function applyCoat(player)
 	local data = context.PlayerData[player]
 	if data == nil then
 		return
 	end
-	local coat = WardrobeConfig.Coats[data.CoyoCoat]
-	if coat == nil then
-		return
-	end
 	for _, model in ipairs(context.GetCoyoModels(player)) do
-		applyCoatToModel(model, coat)
+		local index = tostring(model:GetAttribute("PackIndex") or 1)
+		local coat = WardrobeConfig.Coats[data.DogCoats[index] or data.CoyoCoat]
+		if coat then applyCoatToModel(model, coat) end
 	end
 end
 
@@ -385,109 +462,8 @@ end
 -- The shrine
 ----------------------------------------------------------------
 
-local function makeShrinePart(parent, name, size, cframe, colour, material, canCollide)
-	local part = Instance.new("Part")
-	part.Name = name
-	part.Size = size
-	part.CFrame = cframe
-	part.Color = colour
-	part.Material = material
-	part.Anchored = true
-	part.CanCollide = canCollide
-	part.CanQuery = false
-	part.CanTouch = false
-	part.Parent = parent
-	return part
-end
-
 local function buildShrine()
-	local folder = Instance.new("Folder")
-	folder.Name = "WardrobeShrine"
-	folder.Parent = workspace
-
-	local position = WardrobeConfig.ShrinePosition
-	local groundY = 0
-	local result = workspace:Raycast(position + Vector3.new(0, 200, 0), Vector3.new(0, -400, 0), groundParams)
-	if result ~= nil then
-		groundY = result.Position.Y
-	end
-
-	-- Face the spawn point
-	local base = CFrame.lookAt(Vector3.new(position.X, groundY, position.Z), Vector3.new(0, groundY, 0))
-	local postHeight = 14
-	local halfWidth = 6
-
-	makeShrinePart(folder, "Platform", Vector3.new(18, 1, 12), base * CFrame.new(0, 0.5, 0), STONE_GREY, Enum.Material.Slate, true)
-
-	for _, side in ipairs({ -1, 1 }) do
-		local postX = side * halfWidth
-		makeShrinePart(folder, "Post", Vector3.new(1.6, postHeight, 1.6), base * CFrame.new(postX, 1 + postHeight / 2, 0), TORII_RED, Enum.Material.SmoothPlastic, true)
-		makeShrinePart(folder, "PostBase", Vector3.new(2.2, 2.4, 2.2), base * CFrame.new(postX, 1 + 1.2, 0), TORII_BLACK, Enum.Material.SmoothPlastic, true)
-
-		-- Glowing lantern orbs either side
-		local orb = makeShrinePart(folder, "Orb", Vector3.new(1.6, 1.6, 1.6), base * CFrame.new(side * (halfWidth + 3), 4, 0), GLOW_PURPLE, Enum.Material.Neon, false)
-		orb.Shape = Enum.PartType.Ball
-		local orbLight = Instance.new("PointLight")
-		orbLight.Color = GLOW_PURPLE
-		orbLight.Range = 14
-		orbLight.Brightness = 1.5
-		orbLight.Parent = orb
-		makeShrinePart(folder, "OrbStand", Vector3.new(0.5, 3, 0.5), base * CFrame.new(side * (halfWidth + 3), 1 + 1.5, 0), TORII_BLACK, Enum.Material.SmoothPlastic, true)
-	end
-
-	makeShrinePart(folder, "Tie", Vector3.new(halfWidth * 2 + 2, 1, 1.2), base * CFrame.new(0, 1 + postHeight - 2.5, 0), TORII_RED, Enum.Material.SmoothPlastic, true)
-	makeShrinePart(folder, "TopBeam", Vector3.new(halfWidth * 2 + 6, 1.4, 2.2), base * CFrame.new(0, 1 + postHeight + 0.7, 0), TORII_RED, Enum.Material.SmoothPlastic, true)
-	makeShrinePart(folder, "TopCap", Vector3.new(halfWidth * 2 + 7, 0.6, 2.6), base * CFrame.new(0, 1 + postHeight + 1.7, 0), TORII_BLACK, Enum.Material.SmoothPlastic, true)
-
-	-- Shimmering portal inside the gate
-	local portal = makeShrinePart(folder, "Portal", Vector3.new(halfWidth * 2 - 1.6, postHeight - 3.5, 0.2), base * CFrame.new(0, 1 + (postHeight - 3.5) / 2, 0), GLOW_PURPLE, Enum.Material.Neon, false)
-	portal.Transparency = 0.75
-
-	local sparkles = Instance.new("ParticleEmitter")
-	sparkles.Color = ColorSequence.new(GLOW_GOLD, GLOW_PURPLE)
-	sparkles.LightEmission = 1
-	sparkles.Size = NumberSequence.new(0.4, 0)
-	sparkles.Lifetime = NumberRange.new(1, 2)
-	sparkles.Speed = NumberRange.new(0.5, 1.5)
-	sparkles.SpreadAngle = Vector2.new(180, 180)
-	sparkles.Rate = 20
-	sparkles.Parent = portal
-
-	local sign = Instance.new("BillboardGui")
-	sign.Size = UDim2.new(14, 0, 3, 0)
-	sign.StudsOffset = Vector3.new(0, postHeight / 2 + 4, 0)
-	sign.MaxDistance = 150
-	sign.Parent = portal
-
-	local title = Instance.new("TextLabel")
-	title.Size = UDim2.new(1, 0, 0.6, 0)
-	title.BackgroundTransparency = 1
-	title.Font = Enum.Font.FredokaOne
-	title.Text = "Wardrobe Shrine"
-	title.TextColor3 = GLOW_GOLD
-	title.TextStrokeTransparency = 0.2
-	title.TextScaled = true
-	title.Parent = sign
-
-	local subtitle = Instance.new("TextLabel")
-	subtitle.Position = UDim2.new(0, 0, 0.6, 0)
-	subtitle.Size = UDim2.new(1, 0, 0.4, 0)
-	subtitle.BackgroundTransparency = 1
-	subtitle.Font = Enum.Font.FredokaOne
-	subtitle.Text = "Outfits for you and Coyo"
-	subtitle.TextColor3 = Color3.new(1, 1, 1)
-	subtitle.TextStrokeTransparency = 0.2
-	subtitle.TextScaled = true
-	subtitle.Parent = sign
-
-	local prompt = Instance.new("ProximityPrompt")
-	prompt.ActionText = "Open Wardrobe"
-	prompt.ObjectText = "Wardrobe Shrine"
-	prompt.HoldDuration = 0
-	prompt.MaxActivationDistance = 12
-	prompt.RequiresLineOfSight = false
-	prompt.Parent = portal
-	prompt.Triggered:Connect(function(player)
+	require(script.Parent:WaitForChild("NinjaCoyoDressingHouse")).Build(function(player)
 		sendState(player)
 		openEvent:FireClient(player)
 	end)
@@ -512,7 +488,11 @@ function Wardrobe.ApplyCoat(player)
 	applyCoat(player)
 end
 
-local function onEquip(player, kind, itemId)
+function Wardrobe.Refresh(player)
+	sendState(player)
+end
+
+local function onEquip(player, kind, itemId, packIndex)
 	local data = context.PlayerData[player]
 	if data == nil then
 		return false, "Loading..."
@@ -534,6 +514,11 @@ local function onEquip(player, kind, itemId)
 			Wardrobe.ApplyOutfit(player, player.Character, false)
 		end
 	elseif kind == "Coat" then
+		packIndex = packIndex or 1
+		if type(packIndex) ~= "number" or packIndex ~= math.floor(packIndex)
+			or packIndex < 1 or packIndex > Config.GetValue("PackSize", data.Upgrades.PackSize) then
+			return false, "Dog not unlocked"
+		end
 		local coat = WardrobeConfig.Coats[itemId]
 		if coat == nil then
 			return false, "Invalid"
@@ -541,7 +526,7 @@ local function onEquip(player, kind, itemId)
 		if ownsItem(player, coat) == false then
 			return false, "Not owned"
 		end
-		data.CoyoCoat = itemId
+		data.DogCoats[tostring(packIndex)] = itemId
 		applyCoat(player)
 	else
 		return false, "Invalid"

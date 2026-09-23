@@ -48,8 +48,8 @@ local spinAngle = 0
 local bannerToken = 0
 local coinStreak = 0
 local lastCoinTime = 0
-local canDoubleJump = false
-local hasDoubleJumped = false
+
+
 
 -- Colours
 local COLOUR_PANEL = Color3.fromRGB(34, 28, 44)
@@ -578,47 +578,3 @@ RunService.RenderStepped:Connect(function(deltaTime)
 		end
 	end
 end)
-
-----------------------------------------------------------------
--- Ninja double jump
-----------------------------------------------------------------
-
-local function setupCharacter(character)
-	local humanoid = character:WaitForChild("Humanoid")
-	canDoubleJump = false
-	hasDoubleJumped = false
-
-	humanoid.StateChanged:Connect(function(oldState, newState)
-		if newState == Enum.HumanoidStateType.Landed then
-			canDoubleJump = false
-			hasDoubleJumped = false
-		elseif newState == Enum.HumanoidStateType.Freefall then
-			task.delay(Config.DoubleJumpDelay, function()
-				if hasDoubleJumped == false and humanoid:GetState() == Enum.HumanoidStateType.Freefall then
-					canDoubleJump = true
-				end
-			end)
-		end
-	end)
-end
-
-UserInputService.JumpRequest:Connect(function()
-	local character = player.Character
-	if character == nil then
-		return
-	end
-	local humanoid = character:FindFirstChildOfClass("Humanoid")
-	if humanoid == nil then
-		return
-	end
-	if canDoubleJump == true and hasDoubleJumped == false then
-		hasDoubleJumped = true
-		canDoubleJump = false
-		humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
-	end
-end)
-
-player.CharacterAdded:Connect(setupCharacter)
-if player.Character ~= nil then
-	task.spawn(setupCharacter, player.Character)
-end

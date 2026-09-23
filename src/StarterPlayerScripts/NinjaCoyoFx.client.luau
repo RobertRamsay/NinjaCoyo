@@ -167,7 +167,7 @@ end
 -- Katana swing (horizontal slash, right to left)
 ----------------------------------------------------------------
 
-local function createSlashArc()
+local function createSlashArc(level)
 	local pivot = makeFxPart(Vector3.new(0.2, 0.2, 0.2), CFrame.new(), Color3.new(1, 1, 1), Enum.Material.Neon, Enum.PartType.Block)
 	pivot.Transparency = 1
 
@@ -176,16 +176,21 @@ local function createSlashArc()
 	inner.Parent = pivot
 
 	local outer = Instance.new("Attachment")
-	outer.Position = Vector3.new(0, 0, -ARC_OUTER)
+	outer.Position = Vector3.new(0, 0, -math.min(9.5, ARC_OUTER + level * 0.1))
 	outer.Parent = pivot
 
 	local trail = Instance.new("Trail")
 	trail.Attachment0 = inner
 	trail.Attachment1 = outer
-	trail.Lifetime = 0.22
+	trail.Lifetime = 0.22 + math.min(level, 30) * 0.004
 	trail.MinLength = 0
 	trail.LightEmission = 1
 	trail.Color = ColorSequence.new(Color3.fromRGB(255, 255, 255), Color3.fromRGB(120, 210, 255))
+	if level >= 20 then
+		trail.Color = ColorSequence.new(Color3.fromRGB(245, 210, 255), Color3.fromRGB(182, 106, 255))
+	elseif level >= 10 then
+		trail.Color = ColorSequence.new(Color3.fromRGB(255, 246, 194), Color3.fromRGB(255, 183, 70))
+	end
 	trail.Transparency = NumberSequence.new({
 		NumberSequenceKeypoint.new(0, 0.05),
 		NumberSequenceKeypoint.new(1, 1),
@@ -225,7 +230,8 @@ local function playSwing(character)
 	end
 	tool.Grip = BLADE_FORWARD * originalGrip[tool]
 
-	local arcPivot, arcTrail = createSlashArc()
+	local level = character:GetAttribute("KatanaLevel") or 0
+	local arcPivot, arcTrail = createSlashArc(level)
 
 	local swing = {}
 	swing.Tool = tool
@@ -236,6 +242,8 @@ local function playSwing(character)
 	swing.Shoulder = findMotor(character, "RightUpperArm", "RightShoulder")
 	swing.Waist = findMotor(character, "UpperTorso", "Waist")
 	swing.StartTime = os.clock()
+	swing.EndYaw = ARC_START_YAW + math.rad(180 + math.min(level, 10) * 18)
+	swing.WaistFinish = WAIST_TWIST_FINISH + (level >= 10 and math.pi * 2 or 0)
 	activeSwings[character] = swing
 	placeArc(swing, ARC_START_YAW)
 
@@ -243,7 +251,10 @@ local function playSwing(character)
 	if character == player.Character then
 		volume = 1
 	end
-	Sounds.Play("Swoosh", rng:NextNumber(0.95, 1.08), volume)
+	Sounds.Play("Swoosh", rng:NextNumber(0.95, 1.08) - math.min(level, 30) * 0.008, volume)
+	if level >= 20 then
+		task.delay(0.08, function() Sounds.Play("Swoosh", 1.25, volume * 0.4) end)
+	end
 end
 
 local function finishSwing(character, swing)
@@ -284,15 +295,15 @@ local function updateSwings()
 			local t = easeInOutCubic((elapsed - SWING_WINDUP_TIME) / SWING_SLASH_TIME)
 			armYaw = lerp(ARM_YAW_WINDUP, ARM_YAW_FINISH, t)
 			armRaise = ARM_RAISE
-			waistTwist = lerp(WAIST_TWIST_WINDUP, WAIST_TWIST_FINISH, t)
-			arcYaw = lerp(ARC_START_YAW, ARC_END_YAW, t)
+			waistTwist = lerp(WAIST_TWIST_WINDUP, swing.WaistFinish, t)
+			arcYaw = lerp(ARC_START_YAW, swing.EndYaw, t)
 			slashing = true
 		elseif elapsed < totalTime then
 			local t = easeOutQuad((elapsed - SWING_WINDUP_TIME - SWING_SLASH_TIME) / SWING_RECOVER_TIME)
 			armYaw = lerp(ARM_YAW_FINISH, 0, t)
 			armRaise = lerp(ARM_RAISE, ARM_RAISE_START, t)
 			waistTwist = lerp(WAIST_TWIST_FINISH, 0, t)
-			arcYaw = ARC_END_YAW
+			arcYaw = swing.EndYaw
 		else
 			finished = true
 		end
