@@ -7,3 +7,4 @@ sourcemap.json
 
 # Local Rojo binary
 rojo.exe
+*.patch 
