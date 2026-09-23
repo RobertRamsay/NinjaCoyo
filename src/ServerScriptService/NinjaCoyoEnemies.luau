@@ -248,6 +248,10 @@ local function spawnEnemy(player)
 	local zone = Config.Zones[zoneId]
 	local tier = math.clamp(data.EnemyTier, zone.EnemyMinLevel, zone.EnemyMaxLevel)
 	local stats = Config.GetEnemyStats(tier)
+	if zoneId == "Inferno" then
+		stats.Health *= 2
+		stats.Type = {Name="Ember Oni",BodyColor=Color3.fromRGB(115,20,12),SkinColor=Color3.fromRGB(255,65,18),AccentColor=Color3.fromRGB(255,120,15),Scale=1.4,Horns=true}
+	end
 	local enemyType = stats.Type
 
 	local description = Instance.new("HumanoidDescription")
@@ -291,6 +295,13 @@ local function spawnEnemy(player)
 	humanoid.WalkSpeed = stats.Speed
 
 	decorateEnemy(model, enemyType)
+	if zoneId == "Inferno" then
+		for _,p in ipairs(model:GetChildren()) do
+			if p:IsA("BasePart") and p.Name ~= "HumanoidRootPart" then p.Material=Enum.Material.Neon end
+		end
+		local glow=Instance.new("PointLight")
+		glow.Color,glow.Range,glow.Brightness,glow.Parent=enemyType.AccentColor,16,1.5,enemyRoot
+	end
 	local healthFill = createHealthBar(head, enemyType, tier)
 
 	model:PivotTo(CFrame.new(spawnPosition + Vector3.new(0, 4 * enemyType.Scale, 0)))
@@ -337,7 +348,9 @@ local function fillEnemies(player)
 			return
 		end
 	end
-	if #list >= Config.EnemiesPerPlayer then
+	local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+	local zone = root and Config.Zones[getZoneAt(root.Position)]
+	if #list >= (zone and zone.EnemiesPerPlayer or Config.EnemiesPerPlayer) then
 		return
 	end
 

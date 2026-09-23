@@ -17,9 +17,9 @@ local rawNew=CFrame.new
 CFrame.new=function(...)return setmetatable(rawNew(...),cfMeta)end
 local UDim2={fromOffset=function(...)return {...}end,fromScale=function(...)return {...}end}
 -- CONFIG_INSERT
-local expected={50,500,1000,2500,10000,50000,150000,300000}
-for i,id in ipairs(Config.UnlockOrder)do assert(Config.Unlocks[id].Cost==expected[i],"Requested cost: "..id)end
-assert(#Config.ZoneOrder==8,"Seven gates need eight zones")
+local expected={50,500,1000,2500,10000,50000,150000,300000,1000000}
+for i,id in ipairs(Config.ZoneOrder)do local unlock = i==1 and "Katana" or Config.Zones[id].RequiredUnlock; assert(Config.Unlocks[unlock].Cost==expected[i],"Requested cost: "..id)end
+assert(#Config.ZoneOrder==9,"Eight gates need nine zones")
 for i,id in ipairs(Config.ZoneOrder)do
 	local route=Config.PlatformRoutes[id]
 	local v=Config.GetValue("NinjaJump",route.JumpLevel)
@@ -49,9 +49,9 @@ for _,p in ipairs(created)do
 	if p.ClassName=="Seat" then seats+=1 end
 	if p.Name=="EnemyExclusion" then barriers+=1;assert(p.CollisionGroup=="NinjaCoyoRestBarrier")end
 end
-assert(platforms==52 and seats==12 and barriers==2,"Platform and sanctuary geometry built")
+assert(platforms==63 and seats==18 and barriers==3,"Platform and sanctuary geometry built")
 assert(groups['NinjaCoyoRestBarrier:Default']==false and groups['NinjaCoyoRestBarrier:NinjaCoyoEnemies']==true,"Only enemies blocked by sanctuary volume")
-for _,id in ipairs({'Sakura','Spirit'})do
+for _,id in ipairs({'Sakura','Spirit','Inferno'})do
 	local c=Config.Zones[id].Center
 	assert(Progression.IsSafe(c+Vector3.new(48,5,32)),"Dojo interior safe")
 	assert(not Progression.IsSafe(c+Vector3.new(48,5,55)),"Outside door unsafe")
@@ -66,4 +66,22 @@ assert(summit and summit.Multiplier==6 and summit.Position.Y>slot.Position.Y,"Su
 Progression.ChestOpened(slot.Id);chests.GetChildren=function()return {}end
 assert(Progression.GetChestSlot('Bamboo',chests).Id==summit.Id,"Opened chest waits for cooldown")
 now=91;assert(Progression.GetChestSlot('Bamboo',chests).Id==slot.Id,"Chest returns after cooldown")
-print('PASS: exact prices, eight zones, jump headroom, 52 platforms, sanctuary geometry/boundaries, enemy barrier groups and treasure cooldowns')
+print('PASS: exact prices, nine zones, jump headroom, 63 platforms, sanctuary geometry/boundaries, enemy barrier groups and treasure cooldowns')
+
+assert(Config.Zones.Inferno.EnemiesPerPlayer==5 and Config.Zones.Inferno.EnemyMinLevel==45,"Final zone enemy pressure")
+for id,spec in pairs(Config.Weapons) do assert(Config.Unlocks[id].Cost==spec.Cost and spec.Range>0 and spec.Cooldown>=.35) end
+local before=#created
+-- VOLCANO_INSERT
+Volcano.Build({},Config.Zones.Inferno,0)
+local ribs,pools=0,0
+for i=before+1,#created do
+	local p=created[i]
+	if p.Name=="VolcanoRock" then
+		ribs+=1
+		assert(not p.CanQuery and p.CanCollide,"Shell blocks walking but cannot divert ground spawn rays")
+		if p.Position.Y==18 then assert(math.abs(p.Position.X)>30 or p.Position.Z<Config.Zones.Inferno.Center.Z,"Front doorway clear") end
+	end
+	if p.Name=="LavaPool" then pools+=1;assert(not p.CanCollide)end
+end
+assert(ribs==157 and pools==3,"Hollow mountain and lava pools built")
+print('PASS: volcano doorway, hollow shell, spawn-ray clearance, lava pools and weapon unlock catalog')

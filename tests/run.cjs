@@ -43,8 +43,11 @@ const combat = fs.readFileSync(path.join(__dirname, 'combat-cases.luau'), 'utf8'
 const progression = fs.readFileSync(path.join(__dirname, 'progression-cases.luau'), 'utf8')
  .replace('-- CONFIG_INSERT', 'local function loadConfig()\n' + config + '\nend\nlocal Config=loadConfig()')
  .replace('-- PROGRESSION_INSERT', 'local function loadProgression()\n' + read('ServerScriptService/NinjaCoyoProgression.luau') + '\nend\nlocal Progression=loadProgression()');
+const completedProgression = progression.replace('-- VOLCANO_INSERT','local function loadVolcano()\n' + read('ServerScriptService/NinjaCoyoVolcano.luau') + '\nend\nlocal Volcano=loadVolcano()');
+const arsenal = fs.readFileSync(path.join(__dirname,'arsenal-cases.luau'),'utf8')
+ .replace('-- WEAPONS_INSERT', 'local function loadWeapons()\n' + read('ServerScriptService/NinjaCoyoWeapons.luau') + '\nend\nlocal Weapons=loadWeapons()');
 const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'ninjacoyo-tests-'));
-for (const [name, content] of [['upgrades', upgrades], ['movement', movement], ['swing', swing], ['combat', combat], ['progression', progression]]) {
+for (const [name, content] of [['upgrades', upgrades], ['movement', movement], ['swing', swing], ['combat', combat], ['progression', completedProgression], ['arsenal', arsenal]]) {
  const file = path.join(temp, name + '.luau');
  fs.writeFileSync(file, content);
  execFileSync(process.env.LUAU || 'luau', [file], { stdio: 'inherit' });

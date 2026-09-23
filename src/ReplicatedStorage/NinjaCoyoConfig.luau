@@ -693,4 +693,31 @@ function Config.GetEnemyStats(tier)
 	return stats
 end
 
+-- The final gate opens into a hollow volcano beyond Celestial Summit.
+local inferno = table.clone(Config.Zones.Volcano)
+inferno.DisplayName, inferno.Center, inferno.Size = "Inferno Caldera", Vector3.new(0,0,-1585), 240
+inferno.RequiredUnlock, inferno.DecorCount = "InfernoGate", 0
+inferno.FloorMaterial, inferno.FloorColor = Enum.Material.Basalt, Color3.fromRGB(54,39,36)
+inferno.CoinValue, inferno.ChestValueMin, inferno.ChestValueMax = 6000,40000,90000
+inferno.EnemyMinLevel, inferno.EnemyMaxLevel, inferno.EnemyReward = 45,55,60000
+inferno.EnemiesPerPlayer = 5
+Config.Zones.Inferno = inferno
+table.insert(Config.ZoneOrder,"Inferno")
+Config.PlatformRoutes.Inferno = {Count=11,Rise=10,JumpLevel=10}
+Config.Unlocks.InfernoGate = {DisplayName="Inferno Caldera",Description="Enter the lava cavern",Cost=1000000,UnlockMessage="The million-coin volcano is open!"}
+table.insert(Config.UnlockOrder,"InfernoGate")
+Config.Weapons = {
+	Kunai={Cost=250,Range=28,Cooldown=.45,Damage=1.15,Description="Throw a kunai at the nearest enemy"},
+	Shuriken={Cost=1500,Range=40,Cooldown=.35,Damage=.85,Description="Rapid throwing stars; unlimited throws"},
+	Nunchaku={Cost=4000,Range=8,Cooldown=.35,Damage=1.8,Description="Heavy close-range baton strike"},
+	Bow={Cost=10000,Range=80,Cooldown=1,Damage=3.5,Description="Long-range arrows; unlimited ammunition"},
+}
+for _,id in ipairs({"Kunai","Shuriken","Nunchaku","Bow"}) do
+	local weapon=Config.Weapons[id]
+	Config.Unlocks[id]={DisplayName=id=="Bow" and "Bow and Arrow" or id,Description=weapon.Description,Cost=weapon.Cost,UnlockMessage="Equip your new weapon from the backpack!"}
+	table.insert(Config.UnlockOrder,id)
+end
+Config.Upgrades.KatanaPower.DisplayName="Weapon Power"
+Config.Upgrades.KatanaPower.Description="Stronger weapons and wider katana sweeps"
+
 return Config

@@ -199,9 +199,9 @@ local function buildTerrain()
 	terrain:FillBlock(CFrame.new(GROUND_CENTER.X, -GROUND_SIZE.Y / 2, GROUND_CENTER.Z), GROUND_SIZE, Enum.Material.Grass)
 
 	-- Foundations for the two new zones beyond the original terrain.
-	for _, id in ipairs({ "Sky", "Celestial" }) do
+	for _, id in ipairs({ "Sky", "Celestial", "Inferno" }) do
 		local zone = Config.Zones[id]
-		terrain:FillBlock(CFrame.new(zone.Center.X, -5, zone.Center.Z), Vector3.new(zone.Size + 12, 10, zone.Size + 12), zone.FloorMaterial)
+		terrain:FillBlock(CFrame.new(zone.Center.X, -5, zone.Center.Z), Vector3.new(zone.Size + 80, 10, zone.Size + 80), zone.FloorMaterial)
 	end
 
 	-- Rolling mounds
@@ -231,11 +231,12 @@ local function buildTerrain()
 
 	-- Mountains lining both sides of the zone chain, and a final range closing it off
 	local chainStartZ = -130
-	local chainEndZ = -1080
+	local lastZone = Config.Zones[Config.ZoneOrder[#Config.ZoneOrder]]
+	local chainEndZ = lastZone.Center.Z - lastZone.Size / 2 - 150
 	for z = chainStartZ, chainEndZ, -95 do
 		for _, side in ipairs({ -1, 1 }) do
 			local radius = rng:NextNumber(60, 90)
-			local x = side * (90 + 14 + radius * 0.9) + rng:NextNumber(-8, 8)
+			local x = side * (120 + 28 + radius) + rng:NextNumber(-8, 8)
 			buildMountain(x, z + rng:NextNumber(-20, 20), radius)
 		end
 	end

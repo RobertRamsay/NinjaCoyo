@@ -1,3 +1,4 @@
+local Weapons = require(script.Parent:WaitForChild("NinjaCoyoWeapons"))
 local GardenArt = require(script.Parent:WaitForChild("NinjaCoyoGardenArt"))
 -- NinjaCoyoServer (Script in ServerScriptService)
 
@@ -790,7 +791,10 @@ end
 -- Unlocks
 ----------------------------------------------------------------
 
+local weaponContext = {Data=playerData,LastAttack=lastSwingTime,Fx=fxEvent}
+
 local function applyUnlockEffects(player, unlockId)
+	if Config.Weapons[unlockId] then Weapons.Give(player,unlockId,weaponContext) end
 	if unlockId == "Katana" then
 		giveKatana(player)
 	end
@@ -1064,7 +1068,11 @@ local function buildZone(zoneId)
 		end
 	end)
 
-	buildZoneDecor(zoneFolder, zone, baseY)
+	if zoneId == "Inferno" then
+		require(script.Parent:WaitForChild("NinjaCoyoVolcano")).Build(zoneFolder,zone,baseY)
+	else
+		buildZoneDecor(zoneFolder, zone, baseY)
+	end
 end
 
 ----------------------------------------------------------------
@@ -1468,6 +1476,7 @@ local function onCharacterAdded(player, character)
 		end
 	end
 
+	for id in pairs(Config.Weapons) do task.spawn(Weapons.Give,player,id,weaponContext) end
 	createCoyo(player, character)
 	Wardrobe.ApplyCoat(player)
 	Wardrobe.ApplyOutfit(player, character, true)
