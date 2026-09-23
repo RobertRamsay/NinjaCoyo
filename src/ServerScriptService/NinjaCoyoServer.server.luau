@@ -1219,6 +1219,18 @@ local function ensureCoyoPack(player)
 	end
 end
 
+local function refreshPaidBenefits(player)
+	local data = playerData[player]
+	if player.Parent == nil or data == nil then return end
+	-- A paid pack unlocks the same levels as coins; never stacks or reduces a pack.
+	local paidLevel = Wardrobe.GetPaidPackSize(player) - 1
+	data.Upgrades.PackSize = math.max(data.Upgrades.PackSize, paidLevel)
+	refreshGoldSword(player)
+	ensureCoyoPack(player)
+	sendDataToClient(player)
+	Wardrobe.Refresh(player)
+end
+
 -- Reset both the physical dog and its old job so it cannot be pulled back away.
 local function recoverCoyo(petState)
 	local root = petState.RootPart
@@ -1458,7 +1470,7 @@ local function onPlayerAdded(player)
 	end
 	playerData[player] = data
 	playerLoadedOk[player] = loadedOk
-	refreshGoldSword(player)
+	refreshPaidBenefits(player)
 
 	updateLeaderstats(player)
 	sendDataToClient(player)
@@ -1544,7 +1556,7 @@ World.Build()
 
 Wardrobe.Init({
 	PlayerData = playerData,
-	OnOwnershipReady = refreshGoldSword,
+	OnOwnershipReady = refreshPaidBenefits,
 	GetCoyoModels = function(player)
 		local models = {}
 		local pack = playerPets[player]

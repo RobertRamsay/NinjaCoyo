@@ -254,7 +254,8 @@ local function refreshCards()
 			owned = currentState.OwnedCoats[card.ItemId] == true
 			equipped = ((currentState.DogCoats or {})[tostring(selectedDog)] or currentState.Coat) == card.ItemId
 		elseif card.Kind == "Boost" then
-			owned = (card.ItemId == "GoldSword" and currentState.GoldSword == true)
+			owned = (card.PackSize ~= nil and (currentState.PackSize or 1) >= card.PackSize)
+			or (card.ItemId == "GoldSword" and currentState.GoldSword == true)
 			or (card.ItemId == "DoubleCoins" and currentState.DoubleCoins == true)
 			equipped = owned
 		end
@@ -308,7 +309,8 @@ local function onCardClicked(card)
 	elseif card.Kind == "Coat" then
 		owned = currentState.OwnedCoats[card.ItemId] == true
 	elseif card.Kind == "Boost" then
-		owned = (card.ItemId == "GoldSword" and currentState.GoldSword == true)
+		owned = (card.PackSize ~= nil and (currentState.PackSize or 1) >= card.PackSize)
+			or (card.ItemId == "GoldSword" and currentState.GoldSword == true)
 			or (card.ItemId == "DoubleCoins" and currentState.DoubleCoins == true)
 	end
 
@@ -394,6 +396,15 @@ local function createCard(page, kind, itemId, displayName, passId, swatchColours
 			previewPart(Vector3.new(0.45, 0.5, 0.25), Vector3.new(side * 0.5, -0.1, -0.58), swatchColours[2])
 			previewPart(Vector3.new(0.55, 0.1, 0.3), Vector3.new(side * 0.5, 0.15, -0.58), swatchColours[3])
 		end
+	elseif string.sub(itemId, 1, 4) == "Pack" then
+		local count = tonumber(string.sub(itemId, 5)) or 2
+		for i = 1, count do
+			local x = (i - (count + 1) / 2) * 1.3
+			previewPart(Vector3.new(1, 0.8, 1.6), Vector3.new(x, 0, 0), Color3.fromRGB(196, 150, 96))
+			previewPart(Vector3.new(0.8, 0.8, 0.8), Vector3.new(x, 0.5, -0.9), Color3.fromRGB(196, 150, 96))
+			previewPart(Vector3.new(0.85, 0.2, 0.85), Vector3.new(x, 0.7, -0.9), Color3.fromRGB(200, 40, 55))
+		end
+		camera.CFrame = CFrame.lookAt(Vector3.new(6, 4, -10), Vector3.zero)
 	elseif itemId == "GoldSword" then
 		previewPart(Vector3.new(0.3, 3.4, 0.45), Vector3.new(0, 0.7, 0), COLOUR_GOLD, Enum.Material.Neon)
 		previewPart(Vector3.new(1.3, 0.2, 0.7), Vector3.new(0, -1, 0), COLOUR_GOLD, Enum.Material.Metal)
@@ -415,12 +426,13 @@ local function createCard(page, kind, itemId, displayName, passId, swatchColours
 	card.Kind = kind
 	card.ItemId = itemId
 	card.PassId = passId
+	card.PackSize = string.sub(itemId, 1, 4) == "Pack" and tonumber(string.sub(itemId, 5)) or nil
 	card.Button = button
 	local info = kind == "Coat" and WardrobeConfig.Coats[itemId] or kind == "Outfit" and WardrobeConfig.Outfits[itemId]
 	if info and info.RequiredUpgrade then
 		card.UnlockText = Config.Upgrades[info.RequiredUpgrade].DisplayName .. " Lv " .. info.RequiredLevel
 	end
-	local detail = makeLabel(cardFrame, card.UnlockText or (kind == "Coat" and "Choose for the selected dog" or kind == "Outfit" and "Fabric layers & utility gear" or itemId == "GoldSword" and "Permanent • One-hit enemies" or "Double every coin reward"), COLOUR_GOLD)
+	local detail = makeLabel(cardFrame, card.UnlockText or (card.PackSize and (card.PackSize .. " dogs total • Also earn in Dojo") or kind == "Coat" and "Choose for the selected dog" or kind == "Outfit" and "Fabric layers & utility gear" or itemId == "GoldSword" and "Permanent • One-hit enemies" or "Double every coin reward"), COLOUR_GOLD)
 	detail.Position = UDim2.new(0, 10, 0, 139)
 	detail.Size = UDim2.new(1, -20, 0, 25)
 	cards[kind .. ":" .. itemId] = card
@@ -463,6 +475,10 @@ end
 createCard(boostPage, "Boost", "DoubleCoins", "2x Scroll-Coins", WardrobeConfig.DoubleCoinsPassId, { COLOUR_GOLD, Color3.fromRGB(255, 235, 150), COLOUR_GOLD }, 1)
 
 createCard(boostPage, "Boost", "GoldSword", "Super Gold Sword", WardrobeConfig.GoldSwordPassId, { COLOUR_GOLD }, 2)
+
+for count = 2, 4 do
+	createCard(boostPage, "Boost", "Pack" .. count, count .. "-Dog Pack", WardrobeConfig.PackPassIds[count], { COLOUR_GOLD }, count + 1)
+end
 
 showTab("Ninja")
 refreshCards()

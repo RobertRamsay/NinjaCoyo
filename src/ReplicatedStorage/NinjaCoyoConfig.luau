@@ -169,6 +169,7 @@ Config.Wardrobe = {
 	StudioOwnsEverything = true,
 	ShrinePosition = Vector3.new(-45, 0, 45),
 	DoubleCoinsPassId = 0,
+	PackPassIds = { [2] = 0, [3] = 0, [4] = 0 }, -- Total dogs; permanent alternate unlocks.
 	GoldSwordPassId = 1993376284, -- Permanent Gold Katana game pass.
 
 	OutfitOrder = { "Default", "Crimson", "Shadow", "Jade", "Samurai" },

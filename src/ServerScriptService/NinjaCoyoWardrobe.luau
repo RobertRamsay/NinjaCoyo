@@ -82,6 +82,14 @@ function Wardrobe.OwnsGoldSword(player)
 	return ownsPass(player, WardrobeConfig.GoldSwordPassId)
 end
 
+function Wardrobe.GetPaidPackSize(player)
+	local count = 1
+	for size, passId in pairs(WardrobeConfig.PackPassIds or {}) do
+		if ownsPass(player, passId) then count = math.max(count, size) end
+	end
+	return math.clamp(count, 1, #Config.CoyoPackNames)
+end
+
 local function collectPassIds()
 	local passIds = {}
 	for _, outfitId in ipairs(WardrobeConfig.OutfitOrder) do
@@ -101,6 +109,9 @@ local function collectPassIds()
 	end
 	if WardrobeConfig.GoldSwordPassId ~= 0 then
 		table.insert(passIds, WardrobeConfig.GoldSwordPassId)
+	end
+	for _, passId in pairs(WardrobeConfig.PackPassIds or {}) do
+		if passId ~= 0 then table.insert(passIds, passId) end
 	end
 	return passIds
 end
@@ -556,6 +567,9 @@ local function onPassPurchased(player, passId, wasPurchased)
 	ownedPasses[player][passId] = true
 
 	local itemName = passId == WardrobeConfig.GoldSwordPassId and "Super Gold Sword" or "Double Scroll-Coins"
+	for size, id in pairs(WardrobeConfig.PackPassIds or {}) do
+		if id == passId then itemName = size .. "-Dog Pack" end
+	end
 	if context.OnOwnershipReady then context.OnOwnershipReady(player) end
 	for _, outfitId in ipairs(WardrobeConfig.OutfitOrder) do
 		local outfit = WardrobeConfig.Outfits[outfitId]
