@@ -11,8 +11,10 @@ A Roblox ninja-and-coyote collecting game. All game code lives in `src/` and is 
 | `src/ServerScriptService/NinjaCoyoServer.server.luau` | Script in ServerScriptService |
 | `src/ServerScriptService/NinjaCoyoWorld.luau` | ModuleScript in ServerScriptService |
 | `src/ServerScriptService/NinjaCoyoEnemies.luau` | ModuleScript in ServerScriptService |
+| `src/ServerScriptService/NinjaCoyoWardrobe.luau` | ModuleScript in ServerScriptService |
 | `src/StarterPlayerScripts/NinjaCoyoClient.client.luau` | LocalScript in StarterPlayer > StarterPlayerScripts |
 | `src/StarterPlayerScripts/NinjaCoyoFx.client.luau` | LocalScript in StarterPlayer > StarterPlayerScripts |
+| `src/StarterPlayerScripts/NinjaCoyoWardrobeUI.client.luau` | LocalScript in StarterPlayer > StarterPlayerScripts |
 
 `assets/sounds/` holds the original sound effects (already uploaded; their IDs are in `Config.Sounds`).
 

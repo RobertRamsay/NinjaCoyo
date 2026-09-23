@@ -120,6 +120,122 @@ Config.Sounds = {
 	Click = { Id = "rbxassetid://107541070659477", Volume = 0.4 },
 }
 
+----------------------------------------------------------------
+-- Wardrobe Shrine (Robux cosmetics and boosts)
+-- Each item with a PassId of 0 is not for sale yet. Create a Game Pass for it in the
+-- Creator Hub (your game > Monetization > Passes), then paste the pass ID here.
+-- While testing in Studio, StudioOwnsEverything lets you try every item for free.
+----------------------------------------------------------------
+
+Config.Wardrobe = {
+	StudioOwnsEverything = true,
+	ShrinePosition = Vector3.new(-45, 0, 45),
+	DoubleCoinsPassId = 0,
+
+	OutfitOrder = { "Default", "Crimson", "Shadow", "Jade", "Samurai" },
+	Outfits = {
+		Default = {
+			DisplayName = "Your Avatar",
+			PassId = 0,
+			Free = true,
+			BodyColor = Color3.fromRGB(160, 160, 170),
+			AccentColor = Color3.fromRGB(110, 110, 120),
+			SashColor = Color3.fromRGB(200, 200, 210),
+			Armour = false,
+		},
+		Crimson = {
+			DisplayName = "Crimson Ninja",
+			PassId = 0,
+			Free = false,
+			BodyColor = Color3.fromRGB(150, 22, 32),
+			AccentColor = Color3.fromRGB(20, 20, 22),
+			SashColor = Color3.fromRGB(240, 190, 50),
+			Armour = false,
+		},
+		Shadow = {
+			DisplayName = "Shadow Ninja",
+			PassId = 0,
+			Free = false,
+			BodyColor = Color3.fromRGB(28, 28, 34),
+			AccentColor = Color3.fromRGB(150, 60, 220),
+			SashColor = Color3.fromRGB(150, 60, 220),
+			Armour = false,
+		},
+		Jade = {
+			DisplayName = "Jade Ninja",
+			PassId = 0,
+			Free = false,
+			BodyColor = Color3.fromRGB(38, 120, 90),
+			AccentColor = Color3.fromRGB(240, 240, 235),
+			SashColor = Color3.fromRGB(240, 190, 50),
+			Armour = false,
+		},
+		Samurai = {
+			DisplayName = "Golden Samurai",
+			PassId = 0,
+			Free = false,
+			BodyColor = Color3.fromRGB(40, 40, 46),
+			AccentColor = Color3.fromRGB(250, 195, 45),
+			SashColor = Color3.fromRGB(190, 30, 40),
+			Armour = true,
+		},
+	},
+
+	CoatOrder = { "Coyote", "Snow", "ShadowFox", "FireFox", "Spirit" },
+	Coats = {
+		Coyote = {
+			DisplayName = "Coyote",
+			PassId = 0,
+			Free = true,
+			FurColor = Color3.fromRGB(181, 140, 94),
+			DarkColor = Color3.fromRGB(110, 82, 56),
+			LightColor = Color3.fromRGB(232, 214, 184),
+			Material = Enum.Material.SmoothPlastic,
+			Effect = "",
+		},
+		Snow = {
+			DisplayName = "Snow Wolf",
+			PassId = 0,
+			Free = false,
+			FurColor = Color3.fromRGB(235, 238, 245),
+			DarkColor = Color3.fromRGB(175, 185, 200),
+			LightColor = Color3.fromRGB(255, 255, 255),
+			Material = Enum.Material.SmoothPlastic,
+			Effect = "Snow",
+		},
+		ShadowFox = {
+			DisplayName = "Shadow Fox",
+			PassId = 0,
+			Free = false,
+			FurColor = Color3.fromRGB(40, 40, 48),
+			DarkColor = Color3.fromRGB(20, 20, 25),
+			LightColor = Color3.fromRGB(130, 60, 170),
+			Material = Enum.Material.SmoothPlastic,
+			Effect = "Shadow",
+		},
+		FireFox = {
+			DisplayName = "Fire Fox",
+			PassId = 0,
+			Free = false,
+			FurColor = Color3.fromRGB(235, 110, 40),
+			DarkColor = Color3.fromRGB(150, 50, 20),
+			LightColor = Color3.fromRGB(255, 225, 170),
+			Material = Enum.Material.SmoothPlastic,
+			Effect = "Embers",
+		},
+		Spirit = {
+			DisplayName = "Spirit Wolf",
+			PassId = 0,
+			Free = false,
+			FurColor = Color3.fromRGB(120, 200, 255),
+			DarkColor = Color3.fromRGB(60, 120, 230),
+			LightColor = Color3.fromRGB(225, 245, 255),
+			Material = Enum.Material.Neon,
+			Effect = "Spirit",
+		},
+	},
+}
+
 -- Saving
 Config.DataStoreName = "NinjaCoyoData_v1"
 Config.AutoSaveSeconds = 60

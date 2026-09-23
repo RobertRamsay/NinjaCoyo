@@ -8,6 +8,7 @@ local CollectionService = game:GetService("CollectionService")
 
 local Config = require(ReplicatedStorage:WaitForChild("NinjaCoyoConfig"))
 local Enemies = require(script.Parent:WaitForChild("NinjaCoyoEnemies"))
+local Wardrobe = require(script.Parent:WaitForChild("NinjaCoyoWardrobe"))
 
 local dataStore = nil
 local dataStoreOk, dataStoreResult = pcall(function()
@@ -116,6 +117,8 @@ local function createDefaultData()
 		data.Unlocks[unlockId] = false
 	end
 	data.EnemyTier = 1
+	data.Outfit = "Default"
+	data.CoyoCoat = "Coyote"
 	return data
 end
 
@@ -145,6 +148,12 @@ local function loadData(player)
 					data.Upgrades[upgradeId] = math.clamp(math.floor(storedLevel), 0, maxLevel)
 				end
 			end
+		end
+		if type(stored.Outfit) == "string" and Config.Wardrobe.Outfits[stored.Outfit] ~= nil then
+			data.Outfit = stored.Outfit
+		end
+		if type(stored.CoyoCoat) == "string" and Config.Wardrobe.Coats[stored.CoyoCoat] ~= nil then
+			data.CoyoCoat = stored.CoyoCoat
 		end
 		if type(stored.EnemyTier) == "number" then
 			data.EnemyTier = math.max(1, math.floor(stored.EnemyTier))
@@ -244,6 +253,7 @@ local function addCoins(player, amount, worldPosition)
 	if data == nil then
 		return
 	end
+	amount = amount * Wardrobe.GetCoinMultiplier(player)
 	data.Coins = data.Coins + amount
 	updateLeaderstats(player)
 	sendDataToClient(player)
@@ -1110,6 +1120,8 @@ local function onCharacterAdded(player, character)
 	end
 
 	createCoyo(player, character)
+	Wardrobe.ApplyCoat(player)
+	Wardrobe.ApplyOutfit(player, character, true)
 end
 
 local function onPlayerAdded(player)
@@ -1199,6 +1211,18 @@ end
 
 local World = require(script.Parent:WaitForChild("NinjaCoyoWorld"))
 World.Build()
+
+Wardrobe.Init({
+	PlayerData = playerData,
+	GetCoyoModel = function(player)
+		local petState = playerPets[player]
+		if petState == nil then
+			return nil
+		end
+		return petState.Model
+	end,
+	NotifyEvent = notifyEvent,
+})
 
 Enemies.Init({
 	PlayerData = playerData,
