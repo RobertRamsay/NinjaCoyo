@@ -913,6 +913,9 @@ local function buildZone(zoneId)
 	local lockGui = Instance.new("BillboardGui")
 	lockGui.Size = UDim2.new(12, 0, 3, 0)
 	lockGui.StudsOffset = Vector3.new(0, 1, 0)
+	-- Float the sign in front of the paper door (towards the approaching player) so it
+	-- never shares depth with the door and flickers
+	lockGui.StudsOffsetWorldSpace = Vector3.new(0, 0, 2.5)
 	lockGui.MaxDistance = 150
 	lockGui.Parent = door
 

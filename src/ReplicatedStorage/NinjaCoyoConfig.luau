@@ -2,7 +2,7 @@
 local Config = {}
 
 -- General
-Config.StartingCoins = 5000
+Config.StartingCoins = 0
 Config.CoinSpawnBatch = 5
 Config.ChestSpawnBatch = 1
 Config.CoinSpawnInterval = 1
