@@ -1,0 +1,6 @@
+# Studio place files and backups (the scripts live in src/)
+*.rbxl
+*.rbxlx
+*.rbxl.lock
+*.rbxlx.lock
+sourcemap.json
