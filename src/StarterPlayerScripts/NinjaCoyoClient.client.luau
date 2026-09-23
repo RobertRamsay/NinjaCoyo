@@ -9,6 +9,7 @@ local Debris = game:GetService("Debris")
 local CollectionService = game:GetService("CollectionService")
 
 local Config = require(ReplicatedStorage:WaitForChild("NinjaCoyoConfig"))
+local Menus = require(ReplicatedStorage:WaitForChild("NinjaCoyoMenus"))
 local Sounds = require(ReplicatedStorage:WaitForChild("NinjaCoyoSounds"))
 local remotes = ReplicatedStorage:WaitForChild("NinjaCoyoRemotes")
 local buyUpgradeFunction = remotes:WaitForChild("BuyUpgrade")
@@ -128,6 +129,13 @@ screenGui.ResetOnSpawn = false
 screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 screenGui.Parent = playerGui
 
+-- Stats use the device-safe top edge instead of reserving the Roblox toolbar height.
+local statsGui = Instance.new("ScreenGui")
+statsGui.Name = "NinjaCoyoStats"
+statsGui.ResetOnSpawn = false
+statsGui.ScreenInsets = Enum.ScreenInsets.DeviceSafeInsets
+statsGui.Parent = playerGui
+
 -- Coin counter
 local coinFrame = Instance.new("Frame")
 coinFrame.Name = "CoinCounter"
@@ -135,7 +143,7 @@ coinFrame.AnchorPoint = Vector2.new(0.5, 0)
 coinFrame.Position = UDim2.new(0.5, 0, 0, 12)
 coinFrame.Size = UDim2.new(0, 220, 0, 50)
 coinFrame.BackgroundColor3 = COLOUR_PANEL
-coinFrame.Parent = screenGui
+coinFrame.Parent = statsGui
 addCorner(coinFrame, 14)
 addStroke(coinFrame, 3, COLOUR_GOLD)
 
@@ -154,7 +162,7 @@ goalFrame.Position = UDim2.new(0.5, 0, 0, 68)
 goalFrame.Size = UDim2.new(0, 300, 0, 28)
 goalFrame.BackgroundColor3 = COLOUR_PANEL
 goalFrame.ClipsDescendants = true
-goalFrame.Parent = screenGui
+goalFrame.Parent = statsGui
 addCorner(goalFrame, 10)
 addStroke(goalFrame, 2, COLOUR_GOLD)
 
@@ -178,6 +186,24 @@ dojoButton.Position = UDim2.new(0, 12, 0.5, 0)
 dojoButton.Size = UDim2.new(0, 110, 0, 56)
 addStroke(dojoButton, 3, COLOUR_WHITE)
 
+-- A modal layer catches touches outside the shop as well as on blank panel areas.
+local shopGui = Instance.new("ScreenGui")
+shopGui.Name = "NinjaCoyoDojoModal"
+shopGui.ResetOnSpawn = false
+shopGui.DisplayOrder = 20
+shopGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+shopGui.Enabled = false
+shopGui.Parent = playerGui
+local shopBlocker = Instance.new("TextButton")
+shopBlocker.Size = UDim2.fromScale(1, 1)
+shopBlocker.BackgroundColor3 = Color3.new(0, 0, 0)
+shopBlocker.BackgroundTransparency = 0.65
+shopBlocker.Text = ""
+shopBlocker.AutoButtonColor = false
+shopBlocker.Active = true
+shopBlocker.Modal = true
+shopBlocker.Parent = shopGui
+
 -- Shop panel
 local shopFrame = Instance.new("Frame")
 shopFrame.Name = "DojoShop"
@@ -186,7 +212,9 @@ shopFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
 shopFrame.Size = UDim2.new(0.6, 0, 0.7, 0)
 shopFrame.BackgroundColor3 = COLOUR_PANEL
 shopFrame.Visible = false
-shopFrame.Parent = screenGui
+shopFrame.Parent = shopGui
+shopFrame.ZIndex = 2
+shopFrame.Active = true
 addCorner(shopFrame, 16)
 addStroke(shopFrame, 3, COLOUR_GOLD)
 
@@ -250,7 +278,7 @@ local compactHud = false
 local function layoutHud()
 	local size = screenGui.AbsoluteSize
 	compactHud = size.X < 900 or size.Y < 600
-	-- One slim row at the top of Roblox's safe area leaves more gameplay visible.
+	-- A slim row at the top edge, respecting only hardware cutouts.
 	local coinWidth, goalWidth = compactHud and 100 or 140, compactHud and 180 or 240
 	coinFrame.Size = UDim2.fromOffset(coinWidth, compactHud and 26 or 30)
 	coinFrame.Position = UDim2.new(0.5, -(goalWidth + 6) / 2, 0, 0)
@@ -270,7 +298,7 @@ local function layoutHud()
 	bannerTitle.Size = UDim2.new(1, -16, 0, compactHud and 20 or 26)
 	bannerSubtitle.Position = UDim2.fromOffset(8, compactHud and 29 or 35)
 	bannerSubtitle.Size = UDim2.new(1, -16, 0, compactHud and 17 or 22)
-	shopFrame.Size = UDim2.new(0, math.min(420, size.X - 24), 0, math.min(440, size.Y - 24))
+	shopFrame.Size = UDim2.new(0, math.floor(math.min(420, size.X - 24) * 0.9), 0, math.floor(math.min(440, size.Y - 24) * 0.9))
 	shopSizeLimit.MinSize = Vector2.new(0, 0)
 end
 screenGui:GetPropertyChangedSignal("AbsoluteSize"):Connect(layoutHud)
@@ -329,7 +357,9 @@ local function refreshShop()
 		local level = currentData.Upgrades[upgradeId]
 		local currentText = Config.FormatValue(upgradeId, Config.GetValue(upgradeId, level))
 
-		rowInfo.NameLabel.Text = info.DisplayName .. "  Lv " .. level .. "/" .. info.MaxLevel
+		rowInfo.NameLabel.Text = upgradeId == "PackSize"
+			and ("Wolf Pack  " .. Config.GetValue("PackSize", level) .. "/4 dogs")
+			or (info.DisplayName .. "  Lv " .. level .. "/" .. info.MaxLevel)
 
 		if level >= info.MaxLevel then
 			rowInfo.InfoLabel.Text = info.Description .. "  (" .. currentText .. ")"
@@ -535,13 +565,20 @@ end
 refreshShop()
 updateGoal()
 
+local function setDojoOpen(open)
+	shopFrame.Visible = open
+	shopGui.Enabled = open
+	Menus.Set("Dojo", open)
+end
+player.CharacterRemoving:Connect(function() setDojoOpen(false) end)
+
 dojoButton.Activated:Connect(function()
 	Sounds.Play("Click", 1, 1)
-	shopFrame.Visible = not shopFrame.Visible
+	setDojoOpen(not shopFrame.Visible)
 end)
 
 closeButton.Activated:Connect(function()
-	shopFrame.Visible = false
+	setDojoOpen(false)
 end)
 
 ----------------------------------------------------------------

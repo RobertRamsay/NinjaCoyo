@@ -18,7 +18,7 @@ let upgrades = fs.readFileSync(path.join(__dirname, 'upgrade-cases.luau'), 'utf8
 upgrades = upgrades.replace('-- CONFIG_INSERT', 'local function loadConfig()\n' + config + '\nend\nlocal Config=loadConfig()');
 for (const [marker, source, names] of [
  ['SAVE', server, ['createDefaultData', 'loadData']],
- ['PACK', server, ['removeCoyo', 'createCoyo']],
+ ['PACK', server, ['removeCoyo', 'createCoyo', 'ensureCoyoPack']],
  ['WARDROBE', wardrobe, ['ownsPass', 'ownsItem', 'buildState', 'sendState', 'applyCoat', 'onEquip']],
  ['SPAWN', server, ['getRandomGroundInZone']],
 ]) upgrades = upgrades.replace('-- ' + marker + '_INSERT', names.map(n => extract(source, n)).join('\n'));

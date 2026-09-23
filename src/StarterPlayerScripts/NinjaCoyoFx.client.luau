@@ -370,6 +370,7 @@ local function hookKatana(child)
 	child:SetAttribute("FxHooked", true)
 
 	child.Activated:Connect(function()
+		if player:GetAttribute("MenuOpen") then return end
 		local now = os.clock()
 		if now - lastLocalSwing < Config.KatanaCooldown then
 			return

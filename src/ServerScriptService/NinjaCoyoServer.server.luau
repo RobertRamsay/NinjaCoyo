@@ -597,6 +597,7 @@ end
 ----------------------------------------------------------------
 
 local function onKatanaSwing(player, tool)
+	if player:GetAttribute("MenuProtected") == true then return end
 	local data = playerData[player]
 	if data == nil then
 		return
@@ -1203,6 +1204,21 @@ local function createCoyo(player, character)
 	playerPets[player] = pack
 end
 
+-- Reconcile saved entitlement even if a pack entry or an entire pack was lost.
+local function ensureCoyoPack(player)
+	local data = playerData[player]
+	local character = player.Character
+	local root = character and character:FindFirstChild("HumanoidRootPart")
+	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+	if not data or not root or not humanoid or humanoid.Health <= 0 then return end
+	local count = math.clamp(Config.GetValue("PackSize", data.Upgrades.PackSize), 1, #Config.CoyoPackNames)
+	local pack = playerPets[player]
+	if not pack or #pack ~= count then
+		createCoyo(player, character)
+		Wardrobe.ApplyCoat(player)
+	end
+end
+
 -- Reset both the physical dog and its old job so it cannot be pulled back away.
 local function recoverCoyo(petState)
 	local root = petState.RootPart
@@ -1561,7 +1577,13 @@ for _, player in ipairs(Players:GetPlayers()) do
 	task.spawn(onPlayerAdded, player)
 end
 
+local packCheckTime = 0
 RunService.Heartbeat:Connect(function(deltaTime)
+	packCheckTime += deltaTime
+	if packCheckTime >= 1 then
+		packCheckTime = 0
+		for player in pairs(playerData) do ensureCoyoPack(player) end
+	end
 	for player, pack in pairs(playerPets) do
 		local claimedCoins = {}
 		for index, petState in ipairs(pack) do

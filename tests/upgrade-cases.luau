@@ -25,6 +25,9 @@ player.Character=character
 local function createCoyoDog(_,_,index)
 	return {Model={Index=index,Destroy=function(m)m.Destroyed=true end}}
 end
+local Wardrobe={ApplyCoat=function()end}
+character.FindFirstChild=function()return root end
+character.FindFirstChildOfClass=function()return {Health=100} end
 -- PACK_INSERT
 for level=0,3 do
 	data.Upgrades.PackSize=level
@@ -36,6 +39,16 @@ end
 local old=playerPets[player]
 createCoyo(player,character)
 assert(#playerPets[player]==4 and old[1].Model.Destroyed,"Rebuild cannot duplicate dogs")
+data.Upgrades.PackSize=1
+playerPets[player]=nil
+ensureCoyoPack(player)
+assert(#playerPets[player]==2,"Missing pack restores purchased second dog")
+table.remove(playerPets[player])
+ensureCoyoPack(player)
+assert(#playerPets[player]==2,"Missing pack slot repaired")
+data.Upgrades.PackSize=3
+ensureCoyoPack(player)
+assert(#playerPets[player]==4,"Reconciliation supports four dogs")
 data=createDefaultData(); playerData[player]=data
 local WardrobeConfig=Config.Wardrobe
 local ownedPasses={}

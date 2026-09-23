@@ -8,6 +8,7 @@ local TweenService = game:GetService("TweenService")
 local MarketplaceService = game:GetService("MarketplaceService")
 
 local Config = require(ReplicatedStorage:WaitForChild("NinjaCoyoConfig"))
+local Menus = require(ReplicatedStorage:WaitForChild("NinjaCoyoMenus"))
 local Sounds = require(ReplicatedStorage:WaitForChild("NinjaCoyoSounds"))
 local remotes = ReplicatedStorage:WaitForChild("NinjaCoyoRemotes")
 local openEvent = remotes:WaitForChild("WardrobeOpen")
@@ -106,6 +107,7 @@ end
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "NinjaCoyoWardrobe"
 screenGui.ResetOnSpawn = false
+screenGui.DisplayOrder = 21
 screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 screenGui.Parent = playerGui
 
@@ -115,6 +117,18 @@ wardrobeButton.Position = UDim2.new(0, 12, 0.5, 70)
 wardrobeButton.Size = UDim2.new(0, 110, 0, 56)
 addStroke(wardrobeButton, 3, COLOUR_WHITE)
 
+local blocker = Instance.new("TextButton")
+blocker.Size = UDim2.fromScale(1, 1)
+blocker.Text = ""
+blocker.BackgroundColor3 = Color3.new(0, 0, 0)
+blocker.BackgroundTransparency = 0.65
+blocker.AutoButtonColor = false
+blocker.Active = true
+blocker.Modal = true
+blocker.Visible = false
+blocker.ZIndex = 2
+blocker.Parent = screenGui
+
 local panel = Instance.new("Frame")
 panel.Name = "WardrobePanel"
 panel.AnchorPoint = Vector2.new(0.5, 0.5)
@@ -123,6 +137,8 @@ panel.Size = UDim2.new(0.7, 0, 0.75, 0)
 panel.BackgroundColor3 = COLOUR_PANEL
 panel.Visible = false
 panel.Parent = screenGui
+panel.ZIndex = 3
+panel.Active = true
 addCorner(panel, 16)
 addStroke(panel, 3, COLOUR_PURPLE)
 
@@ -276,6 +292,10 @@ local function applyState(newState)
 	refreshCards()
 end
 
+MarketplaceService.PromptGamePassPurchaseFinished:Connect(function(who)
+	if who == player then Menus.Set("Purchase", false) end
+end)
+
 local function onCardClicked(card)
 	if isBusy then
 		return
@@ -310,7 +330,9 @@ local function onCardClicked(card)
 	end
 
 	if card.PassId ~= 0 then
-		MarketplaceService:PromptGamePassPurchase(player, card.PassId)
+		Menus.Set("Purchase", true)
+		local ok = pcall(function() MarketplaceService:PromptGamePassPurchase(player, card.PassId) end)
+		if not ok then Menus.Set("Purchase", false) end
 	end
 end
 
@@ -449,8 +471,15 @@ refreshCards()
 -- Opening and closing
 ----------------------------------------------------------------
 
+local function setPanelOpen(open)
+	panel.Visible = open
+	blocker.Visible = open
+	Menus.Set("Wardrobe", open)
+end
+player.CharacterRemoving:Connect(function() setPanelOpen(false) end)
+
 local function openPanel()
-	panel.Visible = true
+	setPanelOpen(true)
 	panelScale.Scale = 0.85
 	TweenService:Create(panelScale, TweenInfo.new(0.2, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Scale = 1 }):Play()
 	task.spawn(function()
@@ -466,7 +495,7 @@ end
 wardrobeButton.Activated:Connect(function()
 	Sounds.Play("Click", 1, 1)
 	if panel.Visible then
-		panel.Visible = false
+		setPanelOpen(false)
 	else
 		openPanel()
 	end
@@ -474,7 +503,7 @@ end)
 
 closeButton.Activated:Connect(function()
 	Sounds.Play("Click", 1, 1)
-	panel.Visible = false
+	setPanelOpen(false)
 end)
 
 openEvent.OnClientEvent:Connect(openPanel)

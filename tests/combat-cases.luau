@@ -8,7 +8,7 @@ V.__sub=function(a,b)return Vector3.new(a.X-b.X,a.Y-b.Y,a.Z-b.Z)end
 local CFrame={lookAt=function(position,target)return {Position=position,Target=target}end}
 local now=10
 local os={clock=function()return now end}
-local player={UserId=1,Parent=true}
+local player={UserId=1,Parent=true,GetAttribute=function(self,k)return self[k] end}
 local WardrobeConfig={GoldSwordPassId=0,DoubleCoinsPassId=0,OutfitOrder={},CoatOrder={},StudioOwnsEverything=true}
 local Wardrobe={}
 local ownedPasses={[player]={}}

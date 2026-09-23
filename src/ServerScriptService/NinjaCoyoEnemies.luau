@@ -387,7 +387,9 @@ local function updateEnemy(enemy, now)
 				enemy.Root.CFrame = CFrame.lookAt(enemy.Root.Position, lookTarget)
 				if now - enemy.LastAttack >= Config.EnemyAttackCooldown then
 					enemy.LastAttack = now
-					targetHumanoid:TakeDamage(enemy.Stats.Damage)
+					if enemy.Owner:GetAttribute("MenuProtected") ~= true then
+						targetHumanoid:TakeDamage(enemy.Stats.Damage)
+					end
 					context.FxEvent:FireAllClients("EnemyAttack", enemy.Model, targetRoot.Position)
 				end
 			else
@@ -410,6 +412,7 @@ end
 ----------------------------------------------------------------
 
 function Enemies.DamageEnemy(player, enemy, amount)
+	if player:GetAttribute("MenuProtected") == true then return end
 	if enemy.Dead == true then
 		return
 	end

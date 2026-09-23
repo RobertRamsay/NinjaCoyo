@@ -50,6 +50,7 @@ local function watch(character)
 end
 
 Input.JumpRequest:Connect(function()
+	if player:GetAttribute("MenuOpen") == true then return end
 	local state = states[player.Character]
 	if not state or state.Humanoid.Health <= 0 then return end
 	local now = os.clock()

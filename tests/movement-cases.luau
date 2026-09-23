@@ -21,7 +21,7 @@ local character={Parent=true,Level=0}
 function character:WaitForChild(name)return name=="Humanoid" and humanoid or root end
 function character:GetDescendants()return {motor}end
 function character:GetAttribute()return self.Level end
-local player={Character=character,CharacterAdded=signal()}
+local player={Character=character,CharacterAdded=signal(),GetAttribute=function(self)return self.DojoOpen end}
 local players={LocalPlayer=player,PlayerAdded=signal(),GetPlayers=function()return {player}end}
 local render={PreSimulation=signal()}
 local input={JumpRequest=signal()}
