@@ -463,6 +463,15 @@ end
 ----------------------------------------------------------------
 
 function World.Build()
+	-- Validate the whole update before Clear() changes the existing terrain.
+	for _, id in ipairs({ "Sky", "Celestial", "Inferno" }) do
+		assert(Config.Zones[id] and Config.Zones[id].Center,
+			"NinjaCoyo configuration is out of date (missing " .. id .. "). Stop Play, sync all scripts with Rojo, then start a fresh test.")
+	end
+	for _, id in ipairs(Config.ZoneOrder) do
+		assert(Config.Zones[id] and Config.PlatformRoutes[id], "NinjaCoyo has incomplete zone configuration: " .. id)
+	end
+	assert(Config.Weapons, "NinjaCoyo weapon configuration is missing. Stop Play and sync NinjaCoyoConfig.")
 	decorFolder.Parent = workspace
 
 	buildTerrain()

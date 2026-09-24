@@ -46,8 +46,24 @@ const progression = fs.readFileSync(path.join(__dirname, 'progression-cases.luau
 const completedProgression = progression.replace('-- VOLCANO_INSERT','local function loadVolcano()\n' + read('ServerScriptService/NinjaCoyoVolcano.luau') + '\nend\nlocal Volcano=loadVolcano()');
 const arsenal = fs.readFileSync(path.join(__dirname,'arsenal-cases.luau'),'utf8')
  .replace('-- WEAPONS_INSERT', 'local function loadWeapons()\n' + read('ServerScriptService/NinjaCoyoWeapons.luau') + '\nend\nlocal Weapons=loadWeapons()');
+const startup = `local World={}
+local Config={Zones={Sky={Center=true},Celestial={Center=true},Inferno={Center=true}},ZoneOrder={"Sky","Celestial","Inferno"},PlatformRoutes={Sky={},Celestial={},Inferno={}},Weapons={}}
+local decorFolder={}
+local workspace={}
+local reached=false
+local function buildTerrain() reached=true;error("TERRAIN_REACHED") end
+`
+ + publicFunction(read('ServerScriptService/NinjaCoyoWorld.luau'),'World.Build')
+ + `
+local ok,err=pcall(World.Build)
+assert(not ok and reached and string.find(err,"TERRAIN_REACHED"),"Complete config reaches terrain builder")
+reached=false;Config.Zones.Inferno=nil
+ok,err=pcall(World.Build)
+assert(not ok and not reached and string.find(err,"missing Inferno"),"Stale config rejected before clearing terrain")
+print("PASS: complete startup configuration and non-destructive stale-config failure")
+`;
 const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'ninjacoyo-tests-'));
-for (const [name, content] of [['upgrades', upgrades], ['movement', movement], ['swing', swing], ['combat', combat], ['progression', completedProgression], ['arsenal', arsenal]]) {
+for (const [name, content] of [['upgrades', upgrades], ['movement', movement], ['swing', swing], ['combat', combat], ['progression', completedProgression], ['arsenal', arsenal], ['startup', startup]]) {
  const file = path.join(temp, name + '.luau');
  fs.writeFileSync(file, content);
  execFileSync(process.env.LUAU || 'luau', [file], { stdio: 'inherit' });
